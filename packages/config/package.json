@@ -1,0 +1,14 @@
+{
+  "name": "@ruma/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "eslint",
+    "tsconfig"
+  ],
+  "dependencies": {
+    "@eslint/js": "^9.29.0",
+    "typescript-eslint": "^8.34.1"
+  }
+}

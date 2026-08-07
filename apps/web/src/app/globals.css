@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+@import '@ruma/ui/styles.css';
+@source "../../../../packages/ui/src";
+
+@theme {
+  --font-sans: var(--ruma-font-body);
+  --color-ruma-surface: var(--ruma-color-surface);
+  --color-ruma-ink: var(--ruma-color-ink);
+  --color-ruma-accent: var(--ruma-color-accent);
+  --color-ruma-gold: var(--ruma-color-gold);
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgb(111 128 111 / 0.16), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgb(198 166 107 / 0.12), transparent 50%),
+    var(--ruma-color-surface);
+  color: var(--ruma-color-ink);
+  font-family: var(--ruma-font-body);
+  line-height: 1.5;
+}

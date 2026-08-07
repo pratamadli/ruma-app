@@ -1,0 +1,35 @@
+{
+  "name": "@ruma/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.7.1",
+    "@reduxjs/toolkit": "^2.8.2",
+    "@ruma/types": "workspace:*",
+    "@ruma/ui": "workspace:*",
+    "@tanstack/react-query": "^5.81.5",
+    "next": "^15.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.84.0",
+    "react-redux": "^9.2.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.10",
+    "@types/node": "^22.15.32",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "tailwindcss": "^4.1.10",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

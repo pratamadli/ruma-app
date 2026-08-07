@@ -1,0 +1,140 @@
+# RUMA — Security Foundation
+
+**Status:** Accepted for Phase 0  
+**Related:** `API_ARCHITECTURE.md`, `DATABASE.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/004-family-multi-tenancy.md`
+
+---
+
+## 1. Security goals
+
+RUMA will eventually handle sensitive household and financial information. Phase 0 establishes boundaries so later features do not retrofit security.
+
+Priorities:
+
+1. Strong authentication boundaries
+2. Hard family tenant isolation
+3. Input validation everywhere
+4. Least privilege data retention
+5. Safe secrets and logging practices
+
+---
+
+## 2. Environment variables & secrets
+
+- Secrets live only in environment / secret managers — never in git.
+- Provide `.env.example` files with placeholder values only.
+- Validate env at process boot (API and web where applicable).
+- Different secrets per environment.
+- Rotate JWT/session secrets if leaked.
+- Restrict production secret access to deploy environments.
+
+---
+
+## 3. Authentication boundaries
+
+- NestJS is the authentication authority for API access.
+- Passwords hashed with a modern KDF (Argon2id preferred).
+- Short-lived access credentials + rotatable refresh sessions.
+- Auth endpoints rate-limited.
+- Password reset / magic links use single-use, expiring tokens.
+- OAuth (later) links to existing user by verified email with explicit account-linking rules.
+
+Details: ADR-003.
+
+---
+
+## 4. Authorization & family isolation
+
+For every family-scoped operation:
+
+1. Authenticate user.
+2. Resolve target `familyId`.
+3. Verify active membership.
+4. Verify role for privileged actions.
+5. Scope all queries by `family_id`.
+
+Additional rules:
+
+- Never trust client-owned “I am admin of family X” claims.
+- Prefer 404 over 403 when it prevents cross-tenant existence leaking for sensitive resources (choose deliberately per endpoint).
+- Database foreign keys support integrity; **application guards enforce tenancy**.
+
+---
+
+## 5. Input validation
+
+- Validate all external input with Zod schemas.
+- Enforce max lengths and enums.
+- Treat file uploads (future) with type/size constraints and virus scanning strategy later.
+- Normalize emails to lowercase.
+
+---
+
+## 6. CORS
+
+- Allowlist exact web origins.
+- Credentials only if cookie auth requires them.
+- Disallow wildcard origins in production.
+
+---
+
+## 7. Rate limiting
+
+- Global API throttling.
+- Stricter limits for `sign-in`, `sign-up`, invite acceptance, password reset.
+- Add IP/user-based controls before public launch if abuse appears.
+
+---
+
+## 8. Logging rules
+
+**Do log:** request id, route, status, latency, user id, family id, error codes.
+
+**Do not log:** passwords, tokens, Authorization headers, raw email bodies, receipt images, bank account numbers, full card data, session cookies.
+
+PII in logs should be minimized; prefer identifiers over emails in production logs when possible.
+
+---
+
+## 9. Sensitive data handling (future finance readiness)
+
+When finance arrives:
+
+- Store the minimum data required for the feature.
+- Preserve auditable source references for imported transactions.
+- Separate AI candidate data from confirmed business records.
+- Do not store full payment card PAN/CVV.
+- Encrypt sensitive fields if provider-at-rest encryption is insufficient for specific columns (decide per field with ADR).
+- Access to finance modules remains family-ACL bound; consider stronger admin/owner rules later.
+
+Phase 0 action: keep architecture free of shortcuts that would force storing unnecessary sensitive payloads in shared “json blob” tables without classification.
+
+---
+
+## 10. Dependency & supply chain hygiene
+
+- Lockfile committed (`pnpm-lock.yaml`).
+- CI installs from lockfile.
+- Prefer well-maintained dependencies; avoid exotic auth packages without review.
+- Run audit periodically (`pnpm audit`) before releases.
+
+---
+
+## 11. Security checklist for new family-scoped endpoints
+
+- [ ] Auth guard applied
+- [ ] Membership/role guard applied
+- [ ] Input schema validated
+- [ ] Query constrained by `family_id`
+- [ ] Error response safe
+- [ ] Tests cover unauthorized and cross-family access
+
+---
+
+## 12. Intentionally deferred
+
+- Formal penetration test
+- WAF / advanced bot management
+- Field-level encryption framework
+- SOC2 controls documentation
+- Full immutable financial audit warehouse

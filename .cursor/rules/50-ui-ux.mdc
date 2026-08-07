@@ -1,0 +1,30 @@
+---
+description: RUMA UI/UX design rules
+globs: ["**/*.{tsx,jsx,css,scss}"]
+---
+
+RUMA uses a premium modern family OS design language.
+
+Primary foundation:
+- Soft UI Evolution
+
+Structure:
+- Minimalism & Swiss
+
+Selective composition:
+- Bento Box Grid for dashboards
+
+AI:
+- AI-Native UI for RUMA AI surfaces
+
+Warmth:
+- subtle Organic Biophilic influence
+
+Avoid:
+- cartoonish/clay UI
+- excessive gradients
+- excessive shadows
+- noisy dashboards
+- generic corporate finance aesthetics
+
+Read docs/07_UI_GUIDELINES.md before creating significant UI.

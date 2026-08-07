@@ -1,0 +1,16 @@
+---
+description: RUMA documentation governance
+globs: ["**/*"]
+---
+
+Treat documentation as code.
+
+When changing product behavior, update PRD/module documentation.
+
+When changing schema, update database documentation and migration.
+
+When changing API, update API contracts/documentation.
+
+When changing architecture, create or update an ADR.
+
+Never knowingly leave project documentation inconsistent with implementation.

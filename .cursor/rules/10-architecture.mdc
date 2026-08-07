@@ -1,0 +1,21 @@
+---
+description: RUMA architecture rules
+globs: ["**/*"]
+---
+
+Protect the modular-monolith architecture.
+
+Prefer:
+- clear domain boundaries
+- shared types
+- composition
+- explicit contracts
+- PostgreSQL as source of truth
+
+Avoid:
+- premature microservices
+- unnecessary dependencies
+- duplicated business logic
+- duplicated sources of truth
+
+Significant architecture changes require an ADR.

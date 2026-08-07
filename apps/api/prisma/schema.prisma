@@ -1,0 +1,133 @@
+// RUMA schema — Phase 0 foundation + Phase 1 Family Workspace
+// Canonical conventions: docs/DATABASE.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  REMOVED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model User {
+  id           String   @id @db.Char(26)
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships         FamilyMembership[]
+  refreshTokens       RefreshToken[]
+  sentInvitations     FamilyInvitation[] @relation("InvitationInviter")
+  acceptedInvitations FamilyInvitation[] @relation("InvitationAcceptor")
+  activities          FamilyActivity[]
+
+  @@map("users")
+}
+
+model Family {
+  id            String    @id @db.Char(26)
+  name          String
+  householdName String?   @map("household_name")
+  timezone      String    @default("UTC")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  memberships FamilyMembership[]
+  invitations FamilyInvitation[]
+  activities  FamilyActivity[]
+
+  @@map("families")
+}
+
+model FamilyMembership {
+  id        String           @id @db.Char(26)
+  familyId  String           @map("family_id") @db.Char(26)
+  userId    String           @map("user_id") @db.Char(26)
+  role      MembershipRole
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([familyId, userId])
+  @@index([userId, status])
+  @@index([familyId, status])
+  @@map("family_memberships")
+}
+
+model FamilyInvitation {
+  id               String           @id @db.Char(26)
+  familyId         String           @map("family_id") @db.Char(26)
+  inviterId        String           @map("inviter_id") @db.Char(26)
+  email            String
+  role             MembershipRole
+  status           InvitationStatus @default(PENDING)
+  tokenHash        String           @unique @map("token_hash")
+  expiresAt        DateTime         @map("expires_at") @db.Timestamptz(6)
+  acceptedAt       DateTime?        @map("accepted_at") @db.Timestamptz(6)
+  acceptedByUserId String?          @map("accepted_by_user_id") @db.Char(26)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family     Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  inviter    User   @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Restrict)
+  acceptedBy User?  @relation("InvitationAcceptor", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, status])
+  @@index([email, status])
+  @@map("family_invitations")
+}
+
+model FamilyActivity {
+  id        String   @id @db.Char(26)
+  familyId  String   @map("family_id") @db.Char(26)
+  actorId   String?  @map("actor_id") @db.Char(26)
+  type      String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  actor  User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, createdAt(sort: Desc)])
+  @@map("family_activities")
+}
+
+model RefreshToken {
+  id        String    @id @db.Char(26)
+  userId    String    @map("user_id") @db.Char(26)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

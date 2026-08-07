@@ -1,0 +1,44 @@
+:root {
+  --ruma-color-surface: #f8f7f4;
+  --ruma-color-surface-elevated: #ffffff;
+  --ruma-color-ink: #191919;
+  --ruma-color-ink-muted: #5c5a55;
+  --ruma-color-accent: #6f806f;
+  --ruma-color-accent-soft: #e7eee7;
+  --ruma-color-gold: #c6a66b;
+  --ruma-color-border: rgb(25 25 25 / 0.1);
+  --ruma-color-danger: #a33b2b;
+  --ruma-color-focus: rgb(111 128 111 / 0.45);
+
+  --ruma-font-display: 'Plus Jakarta Sans', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+  --ruma-font-body: 'Plus Jakarta Sans', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+  --ruma-text-xs: 0.75rem;
+  --ruma-text-sm: 0.875rem;
+  --ruma-text-base: 1rem;
+  --ruma-text-lg: 1.125rem;
+  --ruma-text-xl: 1.35rem;
+  --ruma-text-2xl: 1.75rem;
+  --ruma-text-3xl: 2.25rem;
+
+  --ruma-space-1: 0.25rem;
+  --ruma-space-2: 0.5rem;
+  --ruma-space-3: 0.75rem;
+  --ruma-space-4: 1rem;
+  --ruma-space-5: 1.5rem;
+  --ruma-space-6: 2rem;
+  --ruma-space-8: 3rem;
+  --ruma-space-10: 4rem;
+
+  --ruma-radius-sm: 0.5rem;
+  --ruma-radius-md: 0.75rem;
+  --ruma-radius-lg: 1rem;
+
+  --ruma-shadow-sm: 0 1px 2px rgb(25 25 25 / 0.04);
+  --ruma-shadow-md: 0 10px 30px rgb(25 25 25 / 0.06);
+}
+
+.ruma-surface {
+  background: var(--ruma-color-surface);
+  color: var(--ruma-color-ink);
+  font-family: var(--ruma-font-body);
+}
