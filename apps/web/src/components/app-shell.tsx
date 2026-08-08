@@ -10,6 +10,7 @@ import { hydrateActiveFamilyId, setActiveFamilyId, type RootState } from '@/lib/
 import { useQuery } from '@tanstack/react-query';
 import { listFamilies } from '@/lib/api';
 import { NotificationsMenu } from '@/components/notifications-menu';
+import { APP_VERSION } from '@/lib/version';
 
 function shellLinkClass(active: boolean) {
   return [
@@ -135,9 +136,14 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
         </div>
       </Nav>
       {children}
-      <p className="mt-10 text-xs text-[var(--ruma-color-ink-muted)]">
-        <Link href="/">RUMA</Link> · signed in as {user.email}
-      </p>
+      <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ruma-color-ink-muted)]">
+        <p className="m-0">
+          <Link href="/">RUMA</Link> · signed in as {user.email}
+        </p>
+        <p className="m-0 tracking-[0.12em] text-[var(--ruma-color-ink-muted)]/55">
+          v{APP_VERSION}
+        </p>
+      </footer>
     </div>
   );
 }
