@@ -62,7 +62,7 @@ export default function DesignSystemPage() {
               <span className="text-xs text-[var(--ruma-color-ink-muted)]">Nav lockup</span>
             </div>
             <div className="grid gap-2">
-              <RumaLockup withTagline className="h-auto w-56" />
+              <RumaLockup withTagline />
               <span className="text-xs text-[var(--ruma-color-ink-muted)]">Marketing</span>
             </div>
           </div>

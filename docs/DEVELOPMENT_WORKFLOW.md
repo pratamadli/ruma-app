@@ -1,6 +1,6 @@
 # RUMA — Development Workflow
 
-**Status:** Accepted for Phase 0
+**Status:** Accepted through Phase 0/1
 
 ---
 
@@ -41,7 +41,31 @@ App-scoped:
 
 ---
 
-## 4. Commit conventions
+## 4. Product versioning
+
+**Source of truth:** `package.json` `version` fields (semver).
+
+| Package       | Path                    | Role                              |
+| ------------- | ----------------------- | --------------------------------- |
+| `ruma` (root) | `/package.json`         | Canonical product release         |
+| `@ruma/web`   | `apps/web/package.json` | Shown in the UI footer            |
+| `@ruma/api`   | `apps/api/package.json` | Keep in sync with product release |
+
+Current release: **`1.1.0`** (Phase 0 foundation + Phase 1 household MVP + hardening).
+
+### How the UI gets the version
+
+1. Bump `version` in root, `apps/web`, and `apps/api` together.
+2. `apps/web/next.config.ts` injects `apps/web/package.json` → `NEXT_PUBLIC_APP_VERSION`.
+3. UI reads `APP_VERSION` from `apps/web/src/lib/version.ts` (home footer + app shell).
+
+Optional override for a deploy: set `NEXT_PUBLIC_APP_VERSION` in Vercel (normally unnecessary).
+
+Do **not** hardcode a different version in components. Shared packages under `packages/*` may remain independently versioned (`0.0.0` private) until published.
+
+---
+
+## 5. Commit conventions
 
 Use Conventional Commits lightly (not bureaucratic):
 
@@ -54,11 +78,11 @@ refactor: ...
 test: ...
 ```
 
-No heavy commitlint gate in Phase 0 unless noise becomes a problem.
+No heavy commitlint gate unless noise becomes a problem.
 
 ---
 
-## 5. Git hooks
+## 6. Git hooks
 
 Phase 0 recommendation:
 
@@ -69,7 +93,7 @@ If hooks become friction without value, remove them rather than bypass culture.
 
 ---
 
-## 6. Environment setup
+## 7. Environment setup
 
 1. Copy env examples:
    - `apps/api/.env.example` → `apps/api/.env`
@@ -81,7 +105,7 @@ If hooks become friction without value, remove them rather than bypass culture.
 
 ---
 
-## 7. Documentation workflow
+## 8. Documentation workflow
 
 Before meaningful implementation:
 
@@ -93,7 +117,7 @@ Definition of Done includes docs when behavior/architecture/schema changes (`doc
 
 ---
 
-## 8. CI/CD
+## 9. CI/CD
 
 ### Pull request pipeline
 
@@ -109,7 +133,7 @@ Install → Typecheck → Lint → Test → Build
 
 ---
 
-## 9. Observability in development
+## 10. Observability in development
 
 - Pretty logs locally; structured logs in production.
 - Sentry disabled unless `SENTRY_DSN` present.
@@ -117,7 +141,7 @@ Install → Typecheck → Lint → Test → Build
 
 ---
 
-## 10. Agent / Cursor workflow
+## 11. Agent / Cursor workflow
 
 Follow `.cursor/rules`:
 

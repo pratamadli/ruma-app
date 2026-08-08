@@ -1,6 +1,6 @@
 # RUMA — Product PRD
 
-## MVP (Phase 1 — implemented)
+## MVP (Phase 1 — implemented in product version `1.1.0`)
 
 - Authentication
 - Family Workspace (create family, invite members, membership)
