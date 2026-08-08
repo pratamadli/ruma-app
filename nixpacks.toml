@@ -1,4 +1,16 @@
-# Pin Node 22 — Node 24 + Corepack pnpm 11 fails on Railway
-# (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING).
+# Railway/Nixpacks: Corepack + pnpm 11 crashes with
+# ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING. Use Node 22 + pnpm 10 via npm
+# (bypass Corepack shims).
 [variables]
 NIXPACKS_NODE_VERSION = "22"
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "openssl"]
+aptPkgs = ["build-essential", "python3"]
+
+[phases.install]
+cmds = [
+  "corepack disable || true",
+  "npm install -g pnpm@10.33.4",
+  "pnpm install --frozen-lockfile",
+]

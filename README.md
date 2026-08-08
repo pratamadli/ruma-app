@@ -12,8 +12,8 @@ Former working name **HomeHub** is deprecated.
 
 ## Prerequisites
 
-- Node.js 22.x (see `.nvmrc`; avoid Node 24 for Corepack/pnpm)
-- pnpm 11+
+- Node.js 22.x (see `.nvmrc`)
+- pnpm 10.33.4 (see `packageManager`; pnpm 11 breaks on Railway/Corepack)
 - PostgreSQL 16+ (local install, e.g. Homebrew)
 
 ---
