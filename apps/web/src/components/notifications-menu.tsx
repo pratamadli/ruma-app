@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@ruma/ui';
+import { BellIcon, Button } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '@/lib/api';
 
@@ -26,12 +26,13 @@ export function NotificationsMenu() {
         type="button"
         variant="ghost"
         size="sm"
+        className="relative shrink-0 px-2.5"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden>🔔</span>
+        <BellIcon className="text-[var(--ruma-color-ink)]" />
         {unread > 0 ? (
-          <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--ruma-color-accent)] px-1.5 text-[10px] font-bold text-white">
+          <span className="absolute top-1 right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--ruma-color-accent)] px-1 text-[10px] font-bold text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         ) : null}

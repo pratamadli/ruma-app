@@ -3,6 +3,7 @@ export { Button, type ButtonProps } from './button';
 export { Input, type InputProps } from './input';
 export { Select, type SelectProps } from './select';
 export { fieldControlClass, fieldControlBaseClassName } from './field-styles';
+export { BellIcon, CalendarIcon, ChevronDownIcon } from './icons';
 export { Label, type LabelProps } from './label';
 export { Card, CardTitle, CardDescription } from './card';
 export { Dialog, type DialogProps } from './dialog';
