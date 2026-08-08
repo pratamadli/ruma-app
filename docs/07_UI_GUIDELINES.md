@@ -41,11 +41,12 @@ Rules:
 
 ## Form controls
 
-`Input`, `Select`, and native `date` / `datetime-local` fields share the same control chrome in `@ruma/ui` (`fieldControlClass`):
+`Input`, `Select`, and native `date` / `datetime-local` fields share control chrome in `@ruma/ui` (`fieldControlClass`):
 
-- Matching `min-height`, padding, radius (`--ruma-radius-md`), border, soft shadow, and focus ring.
-- Prefer `<Select>` over ad-hoc `<select>` styling.
-- Date pickers must not use a taller/heavier browser-default chrome than adjacent text/select fields.
+- Fixed height (`h-11` text/select, `h-12` date/datetime) so Safari `<select>` matches text inputs.
+- Prefer `<Select>` (custom chevron, `appearance-none`) over bare `<select>`.
+- Date/datetime fields are signature RUMA controls: sage-tinted surface, accent calendar glyph, taller hit target — not plain browser chrome.
+- Icons: outline SVG in `@ruma/ui` (`BellIcon`, `CalendarIcon`, …) — no emoji notification bells.
 
 ---
 

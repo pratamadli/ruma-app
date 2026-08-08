@@ -102,13 +102,13 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
             </Link>
           </>
         ) : null}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <NotificationsMenu />
           {(familiesQuery.data?.families.length ?? 0) > 0 ? (
             <Select
               id="family-switcher"
               aria-label="Switch family"
-              className="max-w-[10rem] sm:max-w-xs"
+              className="w-auto max-w-[10rem] min-w-[8.5rem] sm:max-w-xs"
               value={currentFamilyId ?? ''}
               onChange={(event) => {
                 const next = event.target.value;
@@ -126,6 +126,7 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
           <Button
             variant="ghost"
             size="sm"
+            className="shrink-0 whitespace-nowrap"
             onClick={async () => {
               await logout();
               router.push('/');
