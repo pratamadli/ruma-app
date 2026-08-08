@@ -1,0 +1,49 @@
+# Triggers production redeploys after CI succeeds on main.
+# Requires GitHub secrets (see docs/DEPLOYMENT.md → Auto-deploy):
+#   RAILWAY_DEPLOY_HOOK_URL
+#   VERCEL_DEPLOY_HOOK_URL
+#
+# If those secrets are unset, this workflow no-ops. Prefer enabling
+# native GitHub auto-deploy on Railway/Vercel if you do not want hooks.
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  redeploy:
+    name: Trigger production redeploys
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Railway
+        env:
+          RAILWAY_DEPLOY_HOOK_URL: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${RAILWAY_DEPLOY_HOOK_URL}" ]; then
+            echo "RAILWAY_DEPLOY_HOOK_URL secret missing — skipped."
+            echo "Add the secret, or rely on Railway GitHub auto-deploy."
+            exit 0
+          fi
+          curl -fsS -X POST "${RAILWAY_DEPLOY_HOOK_URL}"
+          echo "Railway deploy hook OK"
+
+      - name: Trigger Vercel
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${VERCEL_DEPLOY_HOOK_URL}" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL secret missing — skipped."
+            echo "Add the secret, or rely on Vercel GitHub auto-deploy."
+            exit 0
+          fi
+          curl -fsS -X POST "${VERCEL_DEPLOY_HOOK_URL}"
+          echo "Vercel deploy hook OK"

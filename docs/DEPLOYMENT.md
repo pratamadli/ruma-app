@@ -77,6 +77,48 @@ On the Railway API service, set and redeploy:
 
 ---
 
+## Auto-deploy on push to `main`
+
+Two options. Pick **one** to avoid double deploys.
+
+### Option A — Native GitHub sync (simplest)
+
+**Railway (`ruma-app` service)**
+
+1. **Settings** → **Source**
+2. Repo `pratamadli/ruma-app`, branch **`main`**
+3. Auto deploy / deploy on push: **ON**
+4. Recommended: **Wait for CI** = ON (waits for GitHub Action `CI` to pass)
+
+**Vercel (`ruma-app-web`)**
+
+1. **Settings** → **Git**
+2. Connected to `pratamadli/ruma-app`
+3. **Production Branch** = `main`
+4. Automatic deployments from Git: **ON**
+
+Push to `main` → each platform redeploys on its own.
+
+### Option B — CD workflow after CI (deploy hooks)
+
+Repo workflow: `.github/workflows/cd.yml`  
+Flow: push `main` → `CI` green → curl deploy hooks → Railway + Vercel redeploy.
+
+1. **Railway** → `ruma-app` → **Settings** → **Incoming Webhooks** / **Deploy Hooks** → create hook → copy URL  
+   (If Git auto-deploy is also ON, turn it **OFF** to avoid double deploys.)
+2. **Vercel** → `ruma-app-web` → **Settings** → **Git** → **Deploy Hooks** → create hook (branch `main`) → copy URL  
+   (Optional: disable automatic Git deployments if you only want hook-based CD.)
+3. GitHub repo → **Settings** → **Secrets and variables** → **Actions** → add:
+
+| Secret                    | Value                   |
+| ------------------------- | ----------------------- |
+| `RAILWAY_DEPLOY_HOOK_URL` | Railway deploy hook URL |
+| `VERCEL_DEPLOY_HOOK_URL`  | Vercel deploy hook URL  |
+
+If a secret is missing, that platform is skipped (workflow still succeeds).
+
+---
+
 ## Local secret generation
 
 ```bash
