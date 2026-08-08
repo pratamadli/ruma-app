@@ -7,7 +7,7 @@
     "build": "prisma generate && nest build",
     "postinstall": "prisma generate",
     "start": "node dist/main.js",
-    "start:prod": "node dist/main.js",
+    "start:prod": "prisma migrate deploy && node dist/main.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",

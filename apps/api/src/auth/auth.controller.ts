@@ -58,7 +58,7 @@ export class AuthController {
   async signOut(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const raw = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     await this.authService.signOut(raw);
-    res.clearCookie(REFRESH_COOKIE, { path: '/v1/auth' });
+    res.clearCookie(REFRESH_COOKIE, this.refreshCookieOptions());
     return { ok: true };
   }
 
@@ -69,11 +69,22 @@ export class AuthController {
 
   private setRefreshCookie(res: Response, token: string) {
     res.cookie(REFRESH_COOKIE, token, {
-      httpOnly: true,
-      secure: this.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/v1/auth',
+      ...this.refreshCookieOptions(),
       maxAge: this.env.REFRESH_TOKEN_TTL_SECONDS * 1000,
     });
+  }
+
+  /**
+   * Cross-origin web (Vercel) + API (Railway/Render) needs SameSite=None; Secure
+   * so the browser sends the refresh cookie on credentialed fetch.
+   */
+  private refreshCookieOptions() {
+    const crossSite = this.env.NODE_ENV === 'production';
+    return {
+      httpOnly: true,
+      secure: crossSite,
+      sameSite: crossSite ? ('none' as const) : ('lax' as const),
+      path: '/v1/auth',
+    };
   }
 }

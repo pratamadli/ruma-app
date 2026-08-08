@@ -20,8 +20,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(env.PORT);
-  Logger.log(`RUMA API listening on http://localhost:${env.PORT}/v1`, 'Bootstrap');
+  await app.listen(env.PORT, '0.0.0.0');
+  Logger.log(`RUMA API listening on http://0.0.0.0:${env.PORT}/v1`, 'Bootstrap');
 }
 
 void bootstrap();

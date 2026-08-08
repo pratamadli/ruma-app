@@ -8,7 +8,7 @@
 
 - Node.js 22+ (CI pins a current LTS/Active version)
 - pnpm 9+ (repo includes packageManager field)
-- Docker optional for local Postgres later
+- PostgreSQL 16+ (local install; no Docker)
 
 ---
 
@@ -74,7 +74,7 @@ If hooks become friction without value, remove them rather than bypass culture.
 1. Copy env examples:
    - `apps/api/.env.example` → `apps/api/.env`
    - `apps/web/.env.example` → `apps/web/.env.local`
-2. Start Postgres (`docker compose up -d postgres` or local PostgreSQL 16).
+2. Start local PostgreSQL 16 (e.g. Homebrew `postgresql@16`).
 3. Apply migrations: `pnpm --filter @ruma/api exec prisma migrate deploy`
 4. Run `pnpm dev`.
 5. Hit `GET /v1/health` and open http://localhost:3000.

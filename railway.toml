@@ -1,0 +1,11 @@
+# Railway service for apps/api — Nixpacks (Node/pnpm), no containers in-repo.
+[build]
+builder = "NIXPACKS"
+buildCommand = "pnpm install --frozen-lockfile && pnpm turbo run build --filter=@ruma/api..."
+
+[deploy]
+startCommand = "pnpm --filter @ruma/api start:prod"
+healthcheckPath = "/v1/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

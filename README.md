@@ -14,7 +14,7 @@ Former working name **HomeHub** is deprecated.
 
 - Node.js 22+
 - pnpm 11+
-- PostgreSQL 16+ (local install or Docker)
+- PostgreSQL 16+ (local install, e.g. Homebrew)
 
 ---
 
@@ -39,9 +39,7 @@ docs/                  Product brain + engineering docs + ADRs
 ```bash
 pnpm install
 
-# Start Postgres (pick one)
-# docker compose up -d postgres
-# or use a local PostgreSQL 16 instance
+# Ensure local PostgreSQL 16+ is running, then:
 
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
