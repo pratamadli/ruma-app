@@ -54,7 +54,22 @@ function OpenA({ className }: { className?: string }) {
   );
 }
 
-/** Text wordmark with open A (roof). HTML avoids SVG text clipping / tracking bugs. */
+/** Letters after the mark: UM + open A → reads as RUMA with the mark as R. */
+function UmaLetters({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-baseline font-[family-name:var(--ruma-font-display)] font-bold tracking-[0.12em]',
+        className,
+      )}
+    >
+      UM
+      <OpenA />
+    </span>
+  );
+}
+
+/** Standalone wordmark (no mark): full RUMA with open A. */
 export function RumaWordmark({ className }: { className?: string }) {
   return (
     <span
@@ -76,7 +91,7 @@ type LockupProps = {
   withTagline?: boolean;
 };
 
-/** Mark + wordmark (+ optional tagline) for marketing / landing. */
+/** Mark + UMA letters (+ optional tagline). Mark serves as the leading R. */
 export function RumaLockup({ className, showDoor = true, withTagline = false }: LockupProps) {
   return (
     <div
@@ -86,10 +101,7 @@ export function RumaLockup({ className, showDoor = true, withTagline = false }: 
     >
       <div className="flex items-center gap-3">
         <RumaMark className="h-12 w-12 shrink-0 sm:h-14 sm:w-14" showDoor={showDoor} />
-        <span className="font-[family-name:var(--ruma-font-display)] text-4xl font-bold tracking-[0.12em] sm:text-5xl">
-          RUM
-          <OpenA />
-        </span>
+        <UmaLetters className="text-4xl sm:text-5xl" />
       </div>
       {withTagline ? (
         <div className="flex max-w-sm flex-col gap-2 pl-[3.75rem] sm:pl-[4.25rem]">
@@ -111,7 +123,7 @@ type BrandLinkProps = {
   variant?: 'mark' | 'wordmark' | 'lockup';
 };
 
-/** Compact horizontal brand for nav: mark + RUMA wordmark. */
+/** Compact horizontal brand for nav: mark (as R) + UMA. */
 export function RumaBrand({
   className,
   markClassName,
@@ -127,12 +139,10 @@ export function RumaBrand({
   return (
     <span
       className={cn('inline-flex items-center gap-2.5 text-[var(--ruma-color-ink)]', className)}
+      aria-label="RUMA"
     >
       <RumaMark className={cn('h-8 w-8 shrink-0', markClassName)} showDoor={showDoor} />
-      <span className="font-[family-name:var(--ruma-font-display)] text-[length:var(--ruma-text-xl)] font-bold tracking-[0.12em]">
-        RUM
-        <OpenA />
-      </span>
+      <UmaLetters className="text-[length:var(--ruma-text-xl)]" />
     </span>
   );
 }

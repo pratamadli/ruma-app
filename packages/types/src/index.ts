@@ -21,7 +21,10 @@ export type FamilyActivityType =
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-export type TaskRecurrence = 'NONE' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+/** ISO weekday for CUSTOM_WEEKDAYS: 1 = Monday … 7 = Sunday */
+export type RecurrenceWeekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export type TaskRecurrence = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM_WEEKDAYS';
 
 export type NotificationType =
   'TASK_ASSIGNED' | 'TASK_COMPLETED' | 'EVENT_CREATED' | 'MEMBER_JOINED';
@@ -139,6 +142,7 @@ export type TaskResponse = {
   createdBy: TaskMemberRef;
   dueDate: string | null;
   recurrence: TaskRecurrence;
+  recurrenceWeekdays: number[];
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -179,6 +183,8 @@ export type FamilyEventResponse = {
   startAt: string;
   endAt: string | null;
   allDay: boolean;
+  recurrence: TaskRecurrence;
+  recurrenceWeekdays: number[];
   createdBy: TaskMemberRef;
   createdAt: string;
   updatedAt: string;

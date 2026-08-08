@@ -8,6 +8,7 @@ Agenda-first shared household events.
 - `startAt` / optional `endAt` (timestamptz)
 - `allDay` flag
 - Optional location + description
+- Recurrence preference (`NONE|DAILY|WEEKLY|MONTHLY|YEARLY|CUSTOM_WEEKDAYS` + ISO weekdays) — stored only, no auto-spawn (ADR-008)
 
 ## API
 

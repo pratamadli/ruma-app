@@ -6,6 +6,7 @@ import { ActivityService } from '../families/activity.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { createId } from '../common/ids';
 import { toMemberRef } from '../common/member-ref';
+import { normalizeRecurrence } from '../common/recurrence';
 
 @Injectable()
 export class CalendarService {
@@ -32,6 +33,7 @@ export class CalendarService {
     input: CreateFamilyEventInput,
   ): Promise<FamilyEventResponse> {
     this.assertRange(input.startAt, input.endAt ?? null);
+    const { recurrence, recurrenceWeekdays } = normalizeRecurrence(input);
 
     const event = await this.prisma.$transaction(async (tx) => {
       const created = await tx.familyEvent.create({
@@ -44,6 +46,8 @@ export class CalendarService {
           startAt: new Date(input.startAt),
           endAt: input.endAt ? new Date(input.endAt) : null,
           allDay: input.allDay ?? false,
+          recurrence,
+          recurrenceWeekdays,
           createdById: actorId,
         },
         include: { createdBy: true },
@@ -83,16 +87,25 @@ export class CalendarService {
     actorId: string,
     input: UpdateFamilyEventInput,
   ): Promise<FamilyEventResponse> {
-    await this.requireEvent(familyId, eventId);
+    const existing = await this.requireEvent(familyId, eventId);
     const startAt = input.startAt;
     const endAt = input.endAt;
     if (startAt || endAt !== undefined) {
-      const existing = await this.requireEvent(familyId, eventId);
       this.assertRange(
         startAt ?? existing.startAt.toISOString(),
         endAt === undefined ? (existing.endAt?.toISOString() ?? null) : endAt,
       );
     }
+
+    const recurrenceUpdate =
+      input.recurrence === undefined && input.recurrenceWeekdays === undefined
+        ? undefined
+        : normalizeRecurrence({
+            recurrence: input.recurrence ?? existing.recurrence,
+            recurrenceWeekdays:
+              input.recurrenceWeekdays ??
+              (input.recurrence === 'CUSTOM_WEEKDAYS' ? existing.recurrenceWeekdays : []),
+          });
 
     const event = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.familyEvent.update({
@@ -104,6 +117,8 @@ export class CalendarService {
           startAt: input.startAt ? new Date(input.startAt) : undefined,
           endAt: input.endAt === undefined ? undefined : input.endAt ? new Date(input.endAt) : null,
           allDay: input.allDay,
+          recurrence: recurrenceUpdate?.recurrence,
+          recurrenceWeekdays: recurrenceUpdate?.recurrenceWeekdays,
         },
         include: { createdBy: true },
       });
@@ -164,6 +179,8 @@ export class CalendarService {
     startAt: Date;
     endAt: Date | null;
     allDay: boolean;
+    recurrence: FamilyEventResponse['recurrence'];
+    recurrenceWeekdays: number[];
     createdAt: Date;
     updatedAt: Date;
     createdBy: { id: string; name: string | null; email: string };
@@ -177,6 +194,8 @@ export class CalendarService {
       startAt: event.startAt.toISOString(),
       endAt: event.endAt?.toISOString() ?? null,
       allDay: event.allDay,
+      recurrence: event.recurrence,
+      recurrenceWeekdays: event.recurrenceWeekdays,
       createdBy: toMemberRef(event.createdBy)!,
       createdAt: event.createdAt.toISOString(),
       updatedAt: event.updatedAt.toISOString(),

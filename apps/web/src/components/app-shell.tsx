@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Nav, RumaBrand } from '@ruma/ui';
+import { Button, Nav, RumaBrand, Select } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 import { hydrateActiveFamilyId, setActiveFamilyId, type RootState } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
@@ -105,10 +105,10 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
         <div className="ml-auto flex items-center gap-2">
           <NotificationsMenu />
           {(familiesQuery.data?.families.length ?? 0) > 0 ? (
-            <select
+            <Select
               id="family-switcher"
               aria-label="Switch family"
-              className="max-w-[10rem] rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] bg-white px-2 py-2 text-sm sm:max-w-xs"
+              className="max-w-[10rem] sm:max-w-xs"
               value={currentFamilyId ?? ''}
               onChange={(event) => {
                 const next = event.target.value;
@@ -121,7 +121,7 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
                   {family.name}
                 </option>
               ))}
-            </select>
+            </Select>
           ) : null}
           <Button
             variant="ghost"

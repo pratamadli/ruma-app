@@ -8,7 +8,7 @@ Family-scoped household tasks for Phase 1 MVP.
 - Assign to an active member
 - Status: `TODO` | `IN_PROGRESS` | `COMPLETED`
 - Priority + optional due date (`YYYY-MM-DD`)
-- Recurrence preference stored (`NONE|WEEKLY|MONTHLY|YEARLY`) — no auto-spawn (ADR-008)
+- Recurrence preference stored (`NONE|DAILY|WEEKLY|MONTHLY|YEARLY|CUSTOM_WEEKDAYS`) with optional ISO weekdays `1–7` — no auto-spawn (ADR-008)
 
 ## API
 

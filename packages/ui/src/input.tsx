@@ -1,14 +1,23 @@
 import type { InputHTMLAttributes } from 'react';
-import { cn } from './lib/cn';
+import { fieldControlClass } from './field-styles';
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement>;
 
-export function Input({ className, ...props }: InputProps) {
+export function Input({ className, type, ...props }: InputProps) {
+  const dateLike = type === 'date' || type === 'datetime-local' || type === 'time';
   return (
     <input
-      className={cn(
-        'w-full rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] bg-[var(--ruma-color-surface-elevated)] px-3 py-[0.7rem] text-[length:var(--ruma-text-sm)] text-[var(--ruma-color-ink)] shadow-[var(--ruma-shadow-sm)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--ruma-color-ink-muted)] focus-visible:border-[var(--ruma-color-accent)] focus-visible:ring-2 focus-visible:ring-[color:var(--ruma-color-focus)] disabled:cursor-not-allowed disabled:opacity-60',
-        className,
+      type={type}
+      className={fieldControlClass(
+        [
+          'placeholder:text-[var(--ruma-color-ink-muted)]',
+          dateLike
+            ? 'appearance-none [color-scheme:light] [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:hover:opacity-100'
+            : null,
+          className,
+        ]
+          .filter(Boolean)
+          .join(' '),
       )}
       {...props}
     />

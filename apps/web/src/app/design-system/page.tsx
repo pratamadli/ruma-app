@@ -15,6 +15,7 @@ import {
   RumaBrand,
   RumaLockup,
   RumaMark,
+  Select,
 } from '@ruma/ui';
 
 export default function DesignSystemPage() {
@@ -84,14 +85,32 @@ export default function DesignSystemPage() {
         <Card>
           <CardTitle>Form controls</CardTitle>
           <CardDescription>Clear labels, soft depth, accessible focus.</CardDescription>
-          <div className="mt-4 grid gap-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="demo-input">Household name</Label>
               <Input id="demo-input" placeholder="The Rivets" />
             </div>
-            <Button variant="secondary" onClick={() => setOpen(true)}>
-              Open dialog
-            </Button>
+            <div>
+              <Label htmlFor="demo-select">Assign to</Label>
+              <Select id="demo-select" defaultValue="">
+                <option value="">Anyone</option>
+                <option value="a">Adli</option>
+                <option value="b">Partner</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="demo-date">Due date</Label>
+              <Input id="demo-date" type="date" />
+            </div>
+            <div>
+              <Label htmlFor="demo-datetime">Starts</Label>
+              <Input id="demo-datetime" type="datetime-local" />
+            </div>
+            <div className="sm:col-span-2">
+              <Button variant="secondary" onClick={() => setOpen(true)}>
+                Open dialog
+              </Button>
+            </div>
           </div>
         </Card>
       </section>

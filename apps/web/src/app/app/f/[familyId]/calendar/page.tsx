@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, CardDescription, CardTitle, Input, Label } from '@ruma/ui';
+import type { TaskRecurrence } from '@ruma/types';
 import { AppShell } from '@/components/app-shell';
+import { formatRecurrenceLabel, RecurrenceFields } from '@/components/recurrence-fields';
 import { useAuth } from '@/lib/auth-context';
 import { createEvent, deleteEvent, listEvents } from '@/lib/api';
 
@@ -24,6 +26,8 @@ export default function CalendarPage() {
   const [title, setTitle] = useState('');
   const [startLocal, setStartLocal] = useState('');
   const [allDay, setAllDay] = useState(false);
+  const [recurrence, setRecurrence] = useState<TaskRecurrence>('NONE');
+  const [weekdays, setWeekdays] = useState<number[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +51,10 @@ export default function CalendarPage() {
   async function onCreate(event: React.FormEvent) {
     event.preventDefault();
     if (!accessToken || !title.trim() || !startLocal) return;
+    if (recurrence === 'CUSTOM_WEEKDAYS' && weekdays.length === 0) {
+      setError('Pick at least one weekday for custom repeat.');
+      return;
+    }
     setPending(true);
     setError(null);
     try {
@@ -55,9 +63,13 @@ export default function CalendarPage() {
         title: title.trim(),
         startAt,
         allDay,
+        recurrence,
+        recurrenceWeekdays: weekdays,
       });
       setTitle('');
       setStartLocal('');
+      setRecurrence('NONE');
+      setWeekdays([]);
       await queryClient.invalidateQueries({ queryKey: ['events', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['activity', familyId] });
@@ -106,6 +118,13 @@ export default function CalendarPage() {
               />
               All day
             </label>
+            <RecurrenceFields
+              idPrefix="event"
+              recurrence={recurrence}
+              weekdays={weekdays}
+              onRecurrenceChange={setRecurrence}
+              onWeekdaysChange={setWeekdays}
+            />
             {error ? <p className="m-0 text-sm text-[var(--ruma-color-danger)]">{error}</p> : null}
             <Button type="submit" disabled={pending}>
               {pending ? 'Saving…' : 'Add event'}
@@ -126,47 +145,51 @@ export default function CalendarPage() {
               <section key={day} className="grid gap-3">
                 <h2 className="m-0 text-lg font-semibold">{day}</h2>
                 <ul className="grid gap-2 p-0">
-                  {events.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex list-none items-start justify-between gap-3 rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] px-3 py-3"
-                    >
-                      <div>
-                        <div className="text-sm text-[var(--ruma-color-ink-muted)]">
-                          {item.allDay
-                            ? 'All day'
-                            : new Date(item.startAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                        </div>
-                        <div className="font-medium">{item.title}</div>
-                        {item.location ? (
-                          <div className="text-sm text-[var(--ruma-color-ink-muted)]">
-                            {item.location}
-                          </div>
-                        ) : null}
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={async () => {
-                          if (!accessToken) return;
-                          await deleteEvent(accessToken, familyId, item.id);
-                          await queryClient.invalidateQueries({ queryKey: ['events', familyId] });
-                          await queryClient.invalidateQueries({
-                            queryKey: ['dashboard', familyId],
-                          });
-                          await queryClient.invalidateQueries({
-                            queryKey: ['activity', familyId],
-                          });
-                        }}
+                  {events.map((item) => {
+                    const repeat = formatRecurrenceLabel(item.recurrence, item.recurrenceWeekdays);
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex list-none items-start justify-between gap-3 rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] px-3 py-3"
                       >
-                        Delete
-                      </Button>
-                    </li>
-                  ))}
+                        <div>
+                          <div className="text-sm text-[var(--ruma-color-ink-muted)]">
+                            {item.allDay
+                              ? 'All day'
+                              : new Date(item.startAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                            {repeat ? ` · ${repeat}` : ''}
+                          </div>
+                          <div className="font-medium">{item.title}</div>
+                          {item.location ? (
+                            <div className="text-sm text-[var(--ruma-color-ink-muted)]">
+                              {item.location}
+                            </div>
+                          ) : null}
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            if (!accessToken) return;
+                            await deleteEvent(accessToken, familyId, item.id);
+                            await queryClient.invalidateQueries({ queryKey: ['events', familyId] });
+                            await queryClient.invalidateQueries({
+                              queryKey: ['dashboard', familyId],
+                            });
+                            await queryClient.invalidateQueries({
+                              queryKey: ['activity', familyId],
+                            });
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             ))}

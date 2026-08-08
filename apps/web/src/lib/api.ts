@@ -229,6 +229,7 @@ export function createTask(
     assignedToId?: string | null;
     dueDate?: string | null;
     recurrence?: TaskResponse['recurrence'];
+    recurrenceWeekdays?: number[];
   },
 ) {
   return apiFetch<TaskResponse>(
@@ -250,6 +251,7 @@ export function updateTask(
     assignedToId: string | null;
     dueDate: string | null;
     recurrence: TaskResponse['recurrence'];
+    recurrenceWeekdays: number[];
   }>,
 ) {
   return apiFetch<TaskResponse>(
@@ -336,6 +338,8 @@ export function createEvent(
     startAt: string;
     endAt?: string | null;
     allDay?: boolean;
+    recurrence?: FamilyEventResponse['recurrence'];
+    recurrenceWeekdays?: number[];
   },
 ) {
   return apiFetch<FamilyEventResponse>(

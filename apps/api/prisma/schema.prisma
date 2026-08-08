@@ -43,9 +43,11 @@ enum TaskPriority {
 
 enum TaskRecurrence {
   NONE
+  DAILY
   WEEKLY
   MONTHLY
   YEARLY
+  CUSTOM_WEEKDAYS
 }
 
 model User {
@@ -157,9 +159,10 @@ model Task {
   priority     TaskPriority   @default(MEDIUM)
   assignedToId String?        @map("assigned_to_id") @db.Char(26)
   createdById  String         @map("created_by_id") @db.Char(26)
-  dueDate      DateTime?      @map("due_date") @db.Date
-  recurrence   TaskRecurrence @default(NONE)
-  completedAt  DateTime?      @map("completed_at") @db.Timestamptz(6)
+  dueDate             DateTime?      @map("due_date") @db.Date
+  recurrence          TaskRecurrence @default(NONE)
+  recurrenceWeekdays  Int[]          @default([]) @map("recurrence_weekdays")
+  completedAt         DateTime?      @map("completed_at") @db.Timestamptz(6)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -213,12 +216,14 @@ model FamilyEvent {
   title       String
   description String?
   location    String?
-  startAt     DateTime  @map("start_at") @db.Timestamptz(6)
-  endAt       DateTime? @map("end_at") @db.Timestamptz(6)
-  allDay      Boolean   @default(false) @map("all_day")
-  createdById String    @map("created_by_id") @db.Char(26)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  startAt             DateTime        @map("start_at") @db.Timestamptz(6)
+  endAt               DateTime?       @map("end_at") @db.Timestamptz(6)
+  allDay              Boolean         @default(false) @map("all_day")
+  recurrence          TaskRecurrence  @default(NONE)
+  recurrenceWeekdays  Int[]           @default([]) @map("recurrence_weekdays")
+  createdById         String          @map("created_by_id") @db.Char(26)
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   family    Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
   createdBy User   @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)

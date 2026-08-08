@@ -32,7 +32,20 @@ Canonical assets live in `apps/web/public/brand/` and React components in `@ruma
 | Nav lockup (`RumaBrand`) | App shell, auth headers        |
 | Full lockup + tagline    | Landing / OG-style marketing   |
 
-Rules: charcoal ink + sage accent only; uniform stroke; open “A” as roof; flat SVG (no texture); app navigation uses Next.js `Link` with `RumaBrand`.
+Rules:
+
+- Charcoal ink + sage accent only; uniform stroke; open “A” as roof; flat SVG (no texture).
+- When the mark sits beside letters, the mark **is** the leading **R**. Render **UM + open A** only — never “RUM” next to the mark (avoids reading as “RRUMA”).
+- Standalone `RumaWordmark` (no mark) may still spell full **RUMA**.
+- App navigation uses Next.js `Link` with `RumaBrand`.
+
+## Form controls
+
+`Input`, `Select`, and native `date` / `datetime-local` fields share the same control chrome in `@ruma/ui` (`fieldControlClass`):
+
+- Matching `min-height`, padding, radius (`--ruma-radius-md`), border, soft shadow, and focus ring.
+- Prefer `<Select>` over ad-hoc `<select>` styling.
+- Date pickers must not use a taller/heavier browser-default chrome than adjacent text/select fields.
 
 ---
 
