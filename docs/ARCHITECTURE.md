@@ -79,6 +79,11 @@ Avoid creating packages until there is a second consumer. The set above is the m
 - Production: Railway Postgres (no Docker in-repo; local = native Postgres).
 - Object storage later for documents (provider TBD).
 
+### Edge / hosting note
+
+- Browser → Vercel (`apps/web`) uses same-origin `/v1` rewritten to Railway API (auth cookies).
+- Direct public API URL remains available for health checks and non-browser clients.
+
 ---
 
 ## 4. Modular monolith rules
@@ -132,13 +137,14 @@ When AI arrives:
 
 ## 8. Deployment topology
 
-| Component  | Target                                        |
-| ---------- | --------------------------------------------- |
-| `apps/web` | Vercel                                        |
-| `apps/api` | Railway (Nixpacks / pnpm; see `railway.toml`) |
-| PostgreSQL | Railway Postgres (same project as API)        |
-| Email      | Resend                                        |
-| Errors     | Sentry                                        |
+| Component  | Target                                                             |
+| ---------- | ------------------------------------------------------------------ |
+| `apps/web` | Vercel (`NEXT_PUBLIC_API_URL=/v1` + `API_PROXY_TARGET`)            |
+| `apps/api` | Railway (Nixpacks / pnpm; see `railway.toml`)                      |
+| PostgreSQL | Railway Postgres (same project as API)                             |
+| Email      | Resend                                                             |
+| Errors     | Sentry                                                             |
+| CD         | Push `main` → GitHub auto-deploy and/or `.github/workflows/cd.yml` |
 
 Prefer low-cost reliable infrastructure. No Docker-based app runtime in this repo. Do not build Kubernetes or service meshes. Details: `docs/DEPLOYMENT.md`.
 

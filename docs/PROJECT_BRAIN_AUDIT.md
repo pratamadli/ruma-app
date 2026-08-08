@@ -90,16 +90,16 @@ These were not decided with enough rigor to implement safely:
 
 ### Potential risks
 
-| Risk                                                  | Severity   | Notes                                                        |
-| ----------------------------------------------------- | ---------- | ------------------------------------------------------------ |
-| Building features before tenant isolation is airtight | High       | Family-scoped data leaks are existential                     |
-| Premature finance/AI complexity                       | High       | Attractive but out of MVP; increases security surface        |
-| Split-brain auth (Supabase Auth + NestJS + Next.js)   | Medium     | Easy to invent accidentally                                  |
-| Redux overuse duplicating server cache                | Medium     | DX and bug risk                                              |
-| Docs drift (numbered docs vs new engineering docs)    | Medium     | Needs clear canonical homes                                  |
-| UI language conflict (handbook vs ADR-001)            | Medium     | Agents may regenerate wrong aesthetic                        |
-| Over-tooling the monorepo                             | Low–Medium | Hurts velocity if packages proliferate early                 |
-| Low-cost infra lock-in assumptions                    | Low        | Supabase/Vercel/Railway are fine if boundaries stay portable |
+| Risk                                                  | Severity   | Notes                                                 |
+| ----------------------------------------------------- | ---------- | ----------------------------------------------------- |
+| Building features before tenant isolation is airtight | High       | Family-scoped data leaks are existential              |
+| Premature finance/AI complexity                       | High       | Attractive but out of MVP; increases security surface |
+| Split-brain auth (Supabase Auth + NestJS + Next.js)   | Medium     | Easy to invent accidentally                           |
+| Redux overuse duplicating server cache                | Medium     | DX and bug risk                                       |
+| Docs drift (numbered docs vs new engineering docs)    | Medium     | Needs clear canonical homes                           |
+| UI language conflict (handbook vs ADR-001)            | Medium     | Agents may regenerate wrong aesthetic                 |
+| Over-tooling the monorepo                             | Low–Medium | Hurts velocity if packages proliferate early          |
+| Low-cost infra lock-in assumptions                    | Low        | Vercel/Railway are fine if boundaries stay portable   |
 
 ### Recommended improvements
 

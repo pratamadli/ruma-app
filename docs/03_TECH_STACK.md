@@ -25,10 +25,10 @@
 
 ## Infrastructure
 
-- Vercel for web (`apps/web`)
+- Vercel for web (`apps/web`) with same-origin `/v1` rewrite to the API
 - Railway for API (`apps/api`) and production Postgres
 - Object storage later when needed (provider TBD; Nest remains authorization authority)
-- See `docs/DEPLOYMENT.md`
+- Auto-deploy from `main` (GitHub sync and/or CD deploy hooks) — see `docs/DEPLOYMENT.md`
 
 ## Email
 
@@ -41,8 +41,9 @@
 
 ## Monorepo
 
-- pnpm
+- pnpm **10.33.4** (`packageManager`; do not use pnpm 11 on Railway/Corepack)
 - Turborepo
+- Node.js **22.x** (`.nvmrc`)
 
 ## Principle
 

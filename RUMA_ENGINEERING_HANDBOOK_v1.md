@@ -108,9 +108,11 @@ Database:
 
 Deployment:
 
-- Vercel (web)
+- Vercel (web; same-origin `/v1` rewrite to API)
 - Railway (API + Postgres)
+- Auto-deploy from `main` (see `docs/DEPLOYMENT.md`)
 - Object storage later when needed
+- No Docker in this repo
 
 Email:
 
@@ -124,7 +126,8 @@ Monitoring:
 Monorepo:
 
 - Turborepo
-- pnpm
+- pnpm 10.33.4
+- Node.js 22.x
 
 # Architecture Principles
 

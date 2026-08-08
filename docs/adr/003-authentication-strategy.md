@@ -16,10 +16,12 @@ Implemented capabilities:
 
 1. Email + password (Argon2id).
 2. Session model: **short-lived JWT access token** + **refresh token** (opaque random token, SHA-256 hashed at rest in PostgreSQL).
-3. Refresh token delivered via **httpOnly, Secure (production), SameSite=Lax** cookie named `ruma_refresh`, path `/v1/auth`.
+3. Refresh token delivered via **httpOnly** cookie `ruma_refresh`, path `/v1/auth`:
+   - Local: `SameSite=Lax` (API on localhost).
+   - Production: `Secure` + `SameSite=None` on the API; the **web app must call the API same-origin** via Next.js rewrite (`NEXT_PUBLIC_API_URL=/v1` + `API_PROXY_TARGET`) so the cookie is first-party on Vercel. Browser → Railway cross-site cookies are unreliable and look like “logged out” after navigation/reload.
 4. Access token delivered to the web client **in memory** and sent as `Authorization: Bearer <token>`.
 5. Magic link and OAuth (Google) remain planned extensions.
-6. Transactional email via Resend deferred until verification/reset flows land.
+6. Transactional email via Resend when `RESEND_API_KEY` is set (invites already supported).
 
 ### Password policy (MVP baseline)
 
@@ -40,3 +42,5 @@ Implemented capabilities:
 - `auth` and `families` modules are live foundation surfaces.
 - Frontend never treats third-party auth widgets as source of authorization for family data.
 - Auth endpoints are rate-limited more tightly than the global API throttle.
+- Production web hosting (Vercel) must proxy `/v1` to the API host; see `docs/DEPLOYMENT.md`.
+- App shell navigation uses Next.js client `Link`s so in-memory access tokens survive route changes.

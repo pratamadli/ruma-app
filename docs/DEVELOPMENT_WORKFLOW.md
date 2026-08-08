@@ -7,7 +7,7 @@
 ## 1. Prerequisites
 
 - Node.js 22.x (CI and Railway pin 22; see `.nvmrc`)
-- pnpm 9+ (repo includes packageManager field)
+- pnpm 10.33.4 (`packageManager` field; avoid pnpm 11 on Railway)
 - PostgreSQL 16+ (local install; no Docker)
 
 ---

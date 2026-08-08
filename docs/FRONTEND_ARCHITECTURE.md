@@ -94,9 +94,12 @@ See ADR-005.
 ## 6. Authentication handling (frontend)
 
 - Auth implemented against NestJS auth endpoints (ADR-003).
-- Access token in memory (preferred) + refresh via httpOnly cookie **or** both tokens via secure cookie strategy documented at implementation time.
-- On 401: attempt refresh once; otherwise route to sign-in.
-- Never store long-lived tokens in `localStorage` if avoidable.
+- Access token in memory + refresh via httpOnly cookie `ruma_refresh`.
+- Local: `NEXT_PUBLIC_API_URL=http://localhost:4000/v1`.
+- Production (Vercel): `NEXT_PUBLIC_API_URL=/v1` + `API_PROXY_TARGET=<railway origin>` so `/v1/*` is same-origin (rewrite in `next.config.ts`). Do not call Railway from the browser directly.
+- App shell uses Next.js `Link` for nav (client transitions). Plain `<a>` full reloads drop the in-memory access token and feel like a forced re-login if refresh fails.
+- On bootstrap: `POST /v1/auth/refresh`; on failure clear session and send authenticated routes to sign-in.
+- Never store long-lived tokens in `localStorage`.
 
 Route protection:
 
@@ -170,7 +173,7 @@ Bento layouts are for dashboard overview compositions, not every page.
 - Primitives: Button, Input, Label, Card, Dialog, Nav
 - Design system demo at `/design-system`
 - Auth pages: `/sign-in`, `/sign-up`
-- Authenticated shell: `/app` (family list via TanStack Query, active family via Redux)
-- Access token kept in memory; refresh via httpOnly cookie
+- Authenticated shell: `/app`, `/app/f/:familyId`, members, settings; invites at `/invite/:token`
+- Access token in memory; refresh via httpOnly cookie (same-origin `/v1` on Vercel)
 
 Do **not** build chores/grocery/finance/AI UI.

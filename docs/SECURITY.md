@@ -34,7 +34,8 @@ Priorities:
 
 - NestJS is the authentication authority for API access.
 - Passwords hashed with a modern KDF (Argon2id preferred).
-- Short-lived access credentials + rotatable refresh sessions.
+- Short-lived access JWT (Bearer, in-memory on web) + rotatable refresh sessions (httpOnly cookie).
+- Production web must use same-origin API proxy on Vercel so refresh cookies are first-party; see `DEPLOYMENT.md` and ADR-003.
 - Auth endpoints rate-limited.
 - Password reset / magic links use single-use, expiring tokens.
 - OAuth (later) links to existing user by verified email with explicit account-linking rules.
@@ -72,9 +73,10 @@ Additional rules:
 
 ## 6. CORS
 
-- Allowlist exact web origins.
-- Credentials only if cookie auth requires them.
+- Allowlist exact web origins (`CORS_ORIGINS`, e.g. `https://ruma-app-web.vercel.app`).
+- Credentials enabled (refresh cookie).
 - Disallow wildcard origins in production.
+- Same-origin Vercel `/v1` rewrite reduces browser CORS surface for the web app; keep allowlist correct for any direct API clients.
 
 ---
 

@@ -6,6 +6,8 @@ AI-powered Household Operating System.
 
 Phase 0 foundation + Phase 1 Family Workspace: auth, family create/settings, invitations, members, activity feed, design system, CI.
 
+Production: Vercel (web) + Railway (API + Postgres). See [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+
 Former working name **HomeHub** is deprecated.
 
 ---
@@ -83,7 +85,7 @@ pnpm --filter @ruma/api exec prisma studio
 - `POST /v1/auth/sign-out`
 - `GET /v1/auth/me`
 
-Access token: Bearer (in-memory on web). Refresh token: httpOnly cookie.
+Access token: Bearer (in-memory on web). Refresh token: httpOnly cookie (`ruma_refresh`). Production web uses same-origin `/v1` proxy on Vercel.
 
 ### Family workspace
 
@@ -101,7 +103,7 @@ Roles: `OWNER`, `ADMIN`, `MEMBER`. Cross-family reads → 404.
 
 See [`docs/README.md`](./docs/README.md) and ADRs in [`docs/adr/`](./docs/adr/).
 
-Production deploy (Vercel web + Railway API/Postgres, no Docker): [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+Production deploy + auto-deploy on `main`: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
 
 ---
 
