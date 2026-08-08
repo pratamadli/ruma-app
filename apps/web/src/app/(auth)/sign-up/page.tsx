@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button, Card, CardDescription, CardTitle, Input, Label } from '@ruma/ui';
+import { Button, Card, CardDescription, CardTitle, Input, Label, RumaBrand } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 
 export default function SignUpPage() {
@@ -32,7 +32,10 @@ export default function SignUpPage() {
   return (
     <main className="grid min-h-screen place-items-center px-6 py-10">
       <Card className="w-full max-w-md">
-        <CardTitle>Create your RUMA account</CardTitle>
+        <Link href="/" className="mb-6 inline-flex no-underline" aria-label="RUMA home">
+          <RumaBrand />
+        </Link>
+        <CardTitle>Create account</CardTitle>
         <CardDescription>Start with identity. Family workspace comes next.</CardDescription>
         <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
           <div>

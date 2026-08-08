@@ -11,8 +11,10 @@ import {
   Input,
   Label,
   Nav,
-  NavBrand,
   NavLink,
+  RumaBrand,
+  RumaLockup,
+  RumaMark,
 } from '@ruma/ui';
 
 export default function DesignSystemPage() {
@@ -21,7 +23,9 @@ export default function DesignSystemPage() {
   return (
     <main className="mx-auto grid min-h-screen w-full max-w-4xl gap-8 px-6 py-10">
       <Nav>
-        <NavBrand href="/">RUMA</NavBrand>
+        <Link href="/" className="mr-auto no-underline" aria-label="RUMA home">
+          <RumaBrand />
+        </Link>
         <NavLink href="/app">App shell</NavLink>
         <NavLink href="/sign-in">Sign in</NavLink>
       </Nav>
@@ -36,6 +40,34 @@ export default function DesignSystemPage() {
           verifies primitives before product UI lands.
         </p>
       </header>
+
+      <section className="grid gap-4">
+        <Card>
+          <CardTitle>Brand</CardTitle>
+          <CardDescription>
+            Geometric R + house mark, sage door accent, open-A wordmark. Favicon uses mark without
+            door.
+          </CardDescription>
+          <div className="mt-6 flex flex-wrap items-end gap-8">
+            <div className="grid gap-2">
+              <RumaMark className="h-16 w-16" />
+              <span className="text-xs text-[var(--ruma-color-ink-muted)]">Mark</span>
+            </div>
+            <div className="grid gap-2">
+              <RumaMark className="h-16 w-16" showDoor={false} />
+              <span className="text-xs text-[var(--ruma-color-ink-muted)]">Mark mono</span>
+            </div>
+            <div className="grid gap-2">
+              <RumaBrand />
+              <span className="text-xs text-[var(--ruma-color-ink-muted)]">Nav lockup</span>
+            </div>
+            <div className="grid gap-2">
+              <RumaLockup withTagline className="h-auto w-56" />
+              <span className="text-xs text-[var(--ruma-color-ink-muted)]">Marketing</span>
+            </div>
+          </div>
+        </Card>
+      </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         <Card>

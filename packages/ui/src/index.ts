@@ -5,3 +5,4 @@ export { Label, type LabelProps } from './label';
 export { Card, CardTitle, CardDescription } from './card';
 export { Dialog, type DialogProps } from './dialog';
 export { Nav, NavBrand, NavLink } from './nav';
+export { RumaMark, RumaWordmark, RumaLockup, RumaBrand } from './logo';

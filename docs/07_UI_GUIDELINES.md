@@ -21,6 +21,21 @@ It must not feel like a generic enterprise dashboard, children's app, or overly 
 
 ---
 
+## Brand mark
+
+Canonical assets live in `apps/web/public/brand/` and React components in `@ruma/ui` (`RumaMark`, `RumaBrand`, `RumaLockup`).
+
+| Lockup                   | Use                            |
+| ------------------------ | ------------------------------ |
+| Mark (+ sage door)       | Marketing, large brand moments |
+| Mark mono (no door)      | Favicon / 16–32px              |
+| Nav lockup (`RumaBrand`) | App shell, auth headers        |
+| Full lockup + tagline    | Landing / OG-style marketing   |
+
+Rules: charcoal ink + sage accent only; uniform stroke; open “A” as roof; flat SVG (no texture); app navigation uses Next.js `Link` with `RumaBrand`.
+
+---
+
 # UI/UX Pro Max Style Strategy
 
 RUMA should use a **hybrid design strategy**, not one style blindly applied everywhere.

@@ -4,7 +4,11 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'RUMA',
-  description: 'AI-powered Household Operating System',
+  description: "Your family's second brain — AI-powered Household Operating System",
+  icons: {
+    icon: [{ url: '/brand/ruma-mark-mono.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/brand/ruma-mark.svg' }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

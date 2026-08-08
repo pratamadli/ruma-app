@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Nav } from '@ruma/ui';
+import { Button, Nav, RumaBrand } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 import { hydrateActiveFamilyId, setActiveFamilyId, type RootState } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
@@ -60,11 +60,8 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl px-4 py-6 sm:px-6">
       <Nav className="mb-6">
-        <Link
-          href="/app"
-          className="mr-auto font-[family-name:var(--ruma-font-display)] text-[length:var(--ruma-text-xl)] font-bold tracking-tight text-[var(--ruma-color-ink)] no-underline"
-        >
-          RUMA
+        <Link href="/app" className="mr-auto no-underline" aria-label="RUMA home">
+          <RumaBrand />
         </Link>
         {currentFamilyId ? (
           <>
