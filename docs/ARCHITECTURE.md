@@ -112,15 +112,15 @@ Details: `DOMAIN_MODEL.md`, `docs/adr/004-family-multi-tenancy.md`, `SECURITY.md
 
 ## 6. Cross-cutting concerns
 
-| Concern       | Approach                                   |
-| ------------- | ------------------------------------------ |
-| Auth          | NestJS-owned; see ADR-003                  |
-| Authorization | Guards + family membership service         |
-| Validation    | Zod (shared) + Nest pipes / DTO validation |
-| Errors        | Consistent JSON error envelope             |
-| Logging       | Structured logs; no secrets/PII dumps      |
-| Config        | Env validated at boot (Zod)                |
-| Observability | Sentry when enabled; minimal PostHog later |
+| Concern       | Approach                                                               |
+| ------------- | ---------------------------------------------------------------------- |
+| Auth          | NestJS-owned; see ADR-003                                              |
+| Authorization | Guards + family membership service                                     |
+| Validation    | Zod (shared) + Nest pipes / DTO validation                             |
+| Errors        | Consistent JSON error envelope                                         |
+| Logging       | Structured logs; no secrets/PII dumps                                  |
+| Config        | Env validated at boot (Zod)                                            |
+| Observability | requestId + JSON logs; Sentry when DSN set; PostHog deferred (ADR-009) |
 
 ---
 

@@ -61,7 +61,7 @@ Household Data (family-scoped resources)
 
 | Domain         | MVP scope                                                       |
 | -------------- | --------------------------------------------------------------- |
-| Auth           | Sign up, sign in, session, sign out                             |
+| Auth           | Sign up, sign in, session, sign out, password reset             |
 | User           | Minimal profile                                                 |
 | Family         | Create family, family settings (minimal)                        |
 | Membership     | Owner/admin/member roles, invite by email/link                  |

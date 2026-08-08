@@ -166,14 +166,15 @@ Bento layouts are for dashboard overview compositions, not every page.
 
 ---
 
-## 11. Phase 0 frontend scope (implemented)
+## 11. Phase 0–1 frontend scope (implemented)
 
 - Next.js App Router shell with loading/error conventions
 - Tailwind + RUMA tokens via `packages/ui`
-- Primitives: Button, Input, Label, Card, Dialog, Nav
+- Primitives: Button, Input, Label, Card, Dialog, Nav, brand logos
 - Design system demo at `/design-system`
-- Auth pages: `/sign-in`, `/sign-up`
-- Authenticated shell: `/app`, `/app/f/:familyId`, members, settings; invites at `/invite/:token`
+- Auth pages: `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password/[token]`
+- Authenticated shell: `/app`, `/app/f/:familyId` home dashboard, tasks, grocery, calendar, members, settings; invites at `/invite/:token`
+- Notification menu in shell (TanStack Query + light polling)
 - Access token in memory; refresh via httpOnly cookie (same-origin `/v1` on Vercel)
 
-Do **not** build chores/grocery/finance/AI UI.
+Do **not** build finance/assets/AI UI yet.

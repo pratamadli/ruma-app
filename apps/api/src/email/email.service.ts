@@ -44,4 +44,35 @@ export class EmailService {
       throw new Error('Failed to send invitation email');
     }
   }
+
+  async sendPasswordReset(input: { to: string; resetUrl: string }): Promise<void> {
+    const subject = 'Reset your RUMA password';
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #191919;">
+        <p>Hi,</p>
+        <p>We received a request to reset your RUMA password.</p>
+        <p><a href="${input.resetUrl}" style="display:inline-block;padding:12px 18px;background:#191919;color:#F8F7F4;text-decoration:none;border-radius:10px;">
+          Reset password
+        </a></p>
+        <p style="color:#5c5a55;font-size:14px;">This link expires soon and can only be used once. If you didn’t request a reset, you can ignore this email.</p>
+      </div>
+    `;
+
+    if (!this.resend) {
+      this.logger.log(`[dev-email] To: ${input.to} | ${subject} | ${input.resetUrl}`);
+      return;
+    }
+
+    const result = await this.resend.emails.send({
+      from: this.env.EMAIL_FROM,
+      to: input.to,
+      subject,
+      html,
+    });
+
+    if (result.error) {
+      this.logger.error(`Failed to send password reset email: ${result.error.message}`);
+      throw new Error('Failed to send password reset email');
+    }
+  }
 }

@@ -6,6 +6,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { FamiliesModule } from './families/families.module';
 import { EmailModule } from './email/email.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { TasksModule } from './tasks/tasks.module';
+import { GroceryModule } from './grocery/grocery.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { HouseholdModule } from './household/household.module';
 import { AuthGuard } from './auth/auth.guard';
 
 @Module({
@@ -20,6 +25,11 @@ import { AuthGuard } from './auth/auth.guard';
     EmailModule,
     AuthModule,
     FamiliesModule,
+    NotificationsModule,
+    TasksModule,
+    GroceryModule,
+    CalendarModule,
+    HouseholdModule,
     HealthModule,
   ],
   providers: [

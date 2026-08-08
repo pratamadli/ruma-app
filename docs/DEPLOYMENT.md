@@ -34,17 +34,20 @@ Commit and push to `main` before connecting hosts to GitHub (or after config cha
 3. Same project: **New** → **Database** → **PostgreSQL**.
 4. On the **API service**, Variables:
 
-| Variable                | Value / notes                                                                           |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `NODE_ENV`              | `production`                                                                            |
-| `DATABASE_URL`          | Variable **reference** to Postgres → `DATABASE_URL` (internal host is fine for the API) |
-| `JWT_ACCESS_SECRET`     | `openssl rand -base64 48`                                                               |
-| `JWT_REFRESH_SECRET`    | another `openssl rand -base64 48`                                                       |
-| `CORS_ORIGINS`          | Vercel web origin, e.g. `https://ruma-app-web.vercel.app`                               |
-| `APP_URL`               | Same as web origin (invite links)                                                       |
-| `EMAIL_FROM`            | `RUMA <onboarding@resend.dev>`                                                          |
-| `RESEND_API_KEY`        | optional                                                                                |
-| `NIXPACKS_NODE_VERSION` | `22` (optional belt-and-suspenders)                                                     |
+| Variable                     | Value / notes                                                                           |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| `NODE_ENV`                   | `production`                                                                            |
+| `DATABASE_URL`               | Variable **reference** to Postgres → `DATABASE_URL` (internal host is fine for the API) |
+| `JWT_ACCESS_SECRET`          | `openssl rand -base64 48`                                                               |
+| `JWT_REFRESH_SECRET`         | another `openssl rand -base64 48`                                                       |
+| `CORS_ORIGINS`               | Vercel web origin, e.g. `https://ruma-app-web.vercel.app`                               |
+| `APP_URL`                    | Same as web origin (invite links)                                                       |
+| `EMAIL_FROM`                 | `RUMA <onboarding@resend.dev>`                                                          |
+| `RESEND_API_KEY`             | optional (invites + password reset emails)                                              |
+| `PASSWORD_RESET_TTL_SECONDS` | optional (default `3600`)                                                               |
+| `SENTRY_DSN`                 | optional API error tracking                                                             |
+| `SENTRY_ENVIRONMENT`         | optional (defaults to `NODE_ENV`)                                                       |
+| `NIXPACKS_NODE_VERSION`      | `22` (optional belt-and-suspenders)                                                     |
 
 5. **Settings → Networking → Generate Domain**. Target port = Railway `PORT` (often **8080**).
 6. Smoke:
@@ -59,10 +62,12 @@ Migrations run via Railway `preDeployCommand` (`prisma migrate deploy`) before e
 2. **Root Directory:** `apps/web`.
 3. Env (required for auth cookies):
 
-| Variable              | Value                                                |
-| --------------------- | ---------------------------------------------------- |
-| `NEXT_PUBLIC_API_URL` | `/v1`                                                |
-| `API_PROXY_TARGET`    | `https://<api>.up.railway.app` (**no** `/v1` suffix) |
+| Variable                         | Value                                                |
+| -------------------------------- | ---------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`            | `/v1`                                                |
+| `API_PROXY_TARGET`               | `https://<api>.up.railway.app` (**no** `/v1` suffix) |
+| `NEXT_PUBLIC_SENTRY_DSN`         | optional public DSN                                  |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | optional (e.g. `production`)                         |
 
 `API_PROXY_TARGET` enables a Next.js rewrite (`/v1/*` → Railway) in `apps/web/next.config.ts`. The browser must call **same-origin** `/v1` on Vercel. Calling Railway from the browser directly breaks refresh cookies (third-party cookie) so Family/nav reloads look like “logged out”.
 

@@ -13,6 +13,38 @@ const hasDatabase = Boolean(process.env.DATABASE_URL);
 describe.runIf(hasDatabase)('Family isolation', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  const emails = ['owner-a@example.com', 'member-b@example.com'];
+
+  async function cleanupFixtureUsers() {
+    const users = await prisma.user.findMany({ where: { email: { in: emails } } });
+    const userIds = users.map((user) => user.id);
+    if (userIds.length === 0) return;
+
+    const memberships = await prisma.familyMembership.findMany({
+      where: { userId: { in: userIds } },
+    });
+    const familyIds = [...new Set(memberships.map((item) => item.familyId))];
+
+    await prisma.notification.deleteMany({
+      where: {
+        OR: [{ recipientId: { in: userIds } }, { familyId: { in: familyIds } }],
+      },
+    });
+    if (familyIds.length > 0) {
+      await prisma.groceryItem.deleteMany({
+        where: { list: { familyId: { in: familyIds } } },
+      });
+      await prisma.groceryList.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.task.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.familyEvent.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.familyActivity.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.familyInvitation.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.familyMembership.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.family.deleteMany({ where: { id: { in: familyIds } } });
+    }
+    await prisma.refreshToken.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  }
 
   beforeAll(async () => {
     resetApiEnvCache();
@@ -30,19 +62,11 @@ describe.runIf(hasDatabase)('Family isolation', () => {
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
     prisma = app.get(PrismaService);
+    await cleanupFixtureUsers();
   });
 
   afterAll(async () => {
-    if (prisma) {
-      await prisma.familyActivity.deleteMany();
-      await prisma.familyInvitation.deleteMany();
-      await prisma.refreshToken.deleteMany();
-      await prisma.familyMembership.deleteMany();
-      await prisma.family.deleteMany();
-      await prisma.user.deleteMany({
-        where: { email: { in: ['owner-a@example.com', 'member-b@example.com'] } },
-      });
-    }
+    if (prisma) await cleanupFixtureUsers();
     if (app) await app.close();
   });
 

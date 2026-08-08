@@ -1,16 +1,33 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as argon2 from 'argon2';
-import type { SignInInput, SignUpInput } from '@ruma/validation';
+import type {
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  SignInInput,
+  SignUpInput,
+} from '@ruma/validation';
 import type { AuthTokensResponse, UserResponse } from '@ruma/types';
 import { PrismaService } from '../prisma/prisma.service';
 import { createId } from '../common/ids';
 import { TokenService } from './token.service';
+import { EmailService } from '../email/email.service';
+import { loadApiEnv } from '../config/env';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private readonly env = loadApiEnv();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: TokenService,
+    private readonly email: EmailService,
   ) {}
 
   async signUp(input: SignUpInput): Promise<AuthTokensResponse & { refreshToken: string }> {
@@ -93,6 +110,83 @@ export class AuthService {
   async me(userId: string): Promise<UserResponse> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     return this.toUserResponse(user.id, user.email, user.name, user.createdAt);
+  }
+
+  /**
+   * Always returns the same success shape to avoid email enumeration.
+   */
+  async forgotPassword(input: ForgotPasswordInput): Promise<{ ok: true }> {
+    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
+    if (!user) {
+      return { ok: true };
+    }
+
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const raw = this.tokens.createRefreshToken();
+    const expiresAt = new Date(Date.now() + this.env.PASSWORD_RESET_TTL_SECONDS * 1000);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        id: createId(),
+        userId: user.id,
+        tokenHash: raw.hash,
+        expiresAt,
+      },
+    });
+
+    const resetUrl = `${this.env.APP_URL}/reset-password/${raw.raw}`;
+    try {
+      await this.email.sendPasswordReset({ to: user.email, resetUrl });
+    } catch (error) {
+      this.logger.error(
+        'Password reset email failed',
+        error instanceof Error ? error.stack : error,
+      );
+      // Still return ok — do not reveal account existence via delivery failures.
+    }
+
+    return { ok: true };
+  }
+
+  async resetPassword(input: ResetPasswordInput): Promise<{ ok: true }> {
+    const tokenHash = this.tokens.hashToken(input.token);
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!stored || stored.usedAt || stored.expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException({
+        code: 'INVALID_RESET_TOKEN',
+        message: 'This reset link is invalid or has expired.',
+      });
+    }
+
+    const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: stored.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.passwordResetToken.updateMany({
+        where: { userId: stored.userId, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return { ok: true };
   }
 
   private async issueSession(

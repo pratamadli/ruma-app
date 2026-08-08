@@ -2,11 +2,38 @@
 
 ## Phase 0 — Foundation
 
-Repository, monorepo, authentication foundation, database, deployment, design system, CI/CD, observability.
+**Status: COMPLETE**
 
-## Phase 1 — MVP
+Repository, monorepo, authentication foundation (email/password + JWT/refresh + password reset), database, deployment, design system, CI/CD, observability (requestId, JSON logs, Sentry env-gated).
 
-Family, members, dashboard, chores, grocery, calendar, notifications, activity feed.
+## Phase 1 — Family & Household MVP
+
+**Status: COMPLETE**
+
+Family workspace + household collaboration:
+
+- Family, members, invitations, activity feed
+- Tasks / chores
+- Shared grocery list
+- Family calendar (agenda)
+- In-app notifications
+- Household dashboard overview
+
+Implemented as the reusable pattern: **Family → Household resources → Activity → Notification**.
+
+### Deferred (intentionally not blocking Phase 2)
+
+See [ADR-009](./adr/009-phase01-deferred-engineering.md):
+
+- Magic link
+- Google OAuth
+- PostHog
+- Notification reminder jobs (due soon / overdue / upcoming events)
+- Recurring task auto-spawn
+- Full server-side timezone conversion engine
+- OpenAPI
+- Playwright E2E suite
+- WebSockets / realtime infra
 
 ## Phase 2 — Home Management
 

@@ -9,7 +9,22 @@ export type FamilyActivityType =
   | 'MEMBER_REMOVED'
   | 'INVITATION_ACCEPTED'
   | 'INVITATION_REVOKED'
-  | 'FAMILY_UPDATED';
+  | 'FAMILY_UPDATED'
+  | 'TASK_CREATED'
+  | 'TASK_COMPLETED'
+  | 'TASK_ASSIGNED'
+  | 'GROCERY_ITEM_ADDED'
+  | 'GROCERY_ITEM_COMPLETED'
+  | 'FAMILY_EVENT_CREATED'
+  | 'FAMILY_EVENT_UPDATED'
+  | 'FAMILY_EVENT_CANCELLED';
+
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type TaskRecurrence = 'NONE' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export type NotificationType =
+  'TASK_ASSIGNED' | 'TASK_COMPLETED' | 'EVENT_CREATED' | 'MEMBER_JOINED';
 
 export type ApiErrorBody = {
   error: {
@@ -105,4 +120,94 @@ export type FamilyActivityResponse = {
 
 export type FamilyActivityListResponse = {
   activities: FamilyActivityResponse[];
+};
+
+export type TaskMemberRef = {
+  id: string;
+  name: string | null;
+  email: string;
+};
+
+export type TaskResponse = {
+  id: string;
+  familyId: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignedTo: TaskMemberRef | null;
+  createdBy: TaskMemberRef;
+  dueDate: string | null;
+  recurrence: TaskRecurrence;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TaskListResponse = {
+  tasks: TaskResponse[];
+};
+
+export type GroceryItemResponse = {
+  id: string;
+  listId: string;
+  name: string;
+  quantity: string | null;
+  category: string | null;
+  assignedTo: TaskMemberRef | null;
+  isCompleted: boolean;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GroceryListResponse = {
+  id: string;
+  familyId: string;
+  name: string;
+  items: GroceryItemResponse[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FamilyEventResponse = {
+  id: string;
+  familyId: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  startAt: string;
+  endAt: string | null;
+  allDay: boolean;
+  createdBy: TaskMemberRef;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FamilyEventListResponse = {
+  events: FamilyEventResponse[];
+};
+
+export type NotificationResponse = {
+  id: string;
+  familyId: string;
+  type: NotificationType | string;
+  title: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type NotificationListResponse = {
+  notifications: NotificationResponse[];
+  unreadCount: number;
+};
+
+export type HouseholdDashboardResponse = {
+  todayTasksRemaining: number;
+  groceryOpenCount: number;
+  upcomingEventsCount: number;
+  todayTasks: TaskResponse[];
+  upcomingEvents: FamilyEventResponse[];
 };

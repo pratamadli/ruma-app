@@ -1,6 +1,11 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { Response, Request } from 'express';
-import { signInSchema, signUpSchema } from '@ruma/validation';
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  signInSchema,
+  signUpSchema,
+} from '@ruma/validation';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -40,6 +45,22 @@ export class AuthController {
     const result = await this.authService.signIn(body as never);
     this.setRefreshCookie(res, result.refreshToken);
     return { accessToken: result.accessToken, user: result.user };
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('forgot-password')
+  forgotPassword(@Body(new ZodValidationPipe(forgotPasswordSchema)) body: unknown) {
+    return this.authService.forgotPassword(body as never);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('reset-password')
+  resetPassword(@Body(new ZodValidationPipe(resetPasswordSchema)) body: unknown) {
+    return this.authService.resetPassword(body as never);
   }
 
   @Public()

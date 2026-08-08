@@ -23,6 +23,7 @@ export const apiEnvSchema = z.object({
     .positive()
     .default(60 * 60 * 24 * 30),
   SENTRY_DSN: z.string().optional(),
+  SENTRY_ENVIRONMENT: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('RUMA <onboarding@resend.dev>'),
   INVITATION_TTL_SECONDS: z.coerce
@@ -30,6 +31,11 @@ export const apiEnvSchema = z.object({
     .int()
     .positive()
     .default(60 * 60 * 24 * 7),
+  PASSWORD_RESET_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60 * 60),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

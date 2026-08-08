@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { hydrateActiveFamilyId, setActiveFamilyId, type RootState } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
 import { listFamilies } from '@/lib/api';
+import { NotificationsMenu } from '@/components/notifications-menu';
 
 function shellLinkClass(active: boolean) {
   return [
@@ -69,6 +70,24 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
               Home
             </Link>
             <Link
+              href={`${base}/tasks`}
+              className={shellLinkClass(Boolean(pathname?.includes('/tasks')))}
+            >
+              Tasks
+            </Link>
+            <Link
+              href={`${base}/grocery`}
+              className={shellLinkClass(Boolean(pathname?.includes('/grocery')))}
+            >
+              Grocery
+            </Link>
+            <Link
+              href={`${base}/calendar`}
+              className={shellLinkClass(Boolean(pathname?.includes('/calendar')))}
+            >
+              Calendar
+            </Link>
+            <Link
               href={`${base}/members`}
               className={shellLinkClass(Boolean(pathname?.includes('/members')))}
             >
@@ -83,14 +102,11 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
           </>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
-          {(familiesQuery.data?.families.length ?? 0) > 1 ? (
-            <label className="sr-only" htmlFor="family-switcher">
-              Switch family
-            </label>
-          ) : null}
+          <NotificationsMenu />
           {(familiesQuery.data?.families.length ?? 0) > 0 ? (
             <select
               id="family-switcher"
+              aria-label="Switch family"
               className="max-w-[10rem] rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] bg-white px-2 py-2 text-sm sm:max-w-xs"
               value={currentFamilyId ?? ''}
               onChange={(event) => {

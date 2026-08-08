@@ -33,3 +33,13 @@
 | [DEPLOYMENT.md](./DEPLOYMENT.md)                       | Production deploy, auth proxy, auto-deploy on `main` |
 | [OBSERVABILITY.md](./OBSERVABILITY.md)                 | Minimal observability                                |
 | [adr/](./adr/)                                         | Architecture Decision Records                        |
+
+## Module docs
+
+| Module        | Path                                               |
+| ------------- | -------------------------------------------------- |
+| Family        | [modules/family/](./modules/family/)               |
+| Tasks         | [modules/tasks/](./modules/tasks/)                 |
+| Grocery       | [modules/grocery/](./modules/grocery/)             |
+| Calendar      | [modules/calendar/](./modules/calendar/)           |
+| Notifications | [modules/notifications/](./modules/notifications/) |
