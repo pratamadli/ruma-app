@@ -47,11 +47,14 @@ Migrations run on API start (`prisma migrate deploy` in `start:prod`).
 
 1. [vercel.com/new](https://vercel.com/new) → import `pratamadli/ruma-app`.
 2. **Root Directory:** `apps/web`.
-3. Env:
+3. Env (important — use same-origin API proxy so auth cookies work):
 
-| Variable              | Value                             |
-| --------------------- | --------------------------------- |
-| `NEXT_PUBLIC_API_URL` | `https://<api>.up.railway.app/v1` |
+| Variable              | Value                                            |
+| --------------------- | ------------------------------------------------ |
+| `NEXT_PUBLIC_API_URL` | `/v1`                                            |
+| `API_PROXY_TARGET`    | `https://<api>.up.railway.app` (no `/v1` suffix) |
+
+`API_PROXY_TARGET` powers a Next.js rewrite (`/v1/*` → Railway). Calling Railway from the browser directly breaks refresh cookies on navigation/reload (third-party cookie).
 
 4. Deploy → copy production URL (e.g. `https://ruma-xxx.vercel.app`).
 

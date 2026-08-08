@@ -4,11 +4,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Nav, NavBrand, NavLink } from '@ruma/ui';
+import { Button, Nav } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 import { hydrateActiveFamilyId, setActiveFamilyId, type RootState } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
 import { listFamilies } from '@/lib/api';
+
+function shellLinkClass(active: boolean) {
+  return [
+    'rounded-[var(--ruma-radius-sm)] px-3 py-2 text-[length:var(--ruma-text-sm)] font-medium no-underline transition-colors hover:bg-black/5 hover:text-[var(--ruma-color-ink)]',
+    active ? 'text-[var(--ruma-color-ink)] bg-black/5' : 'text-[var(--ruma-color-ink-muted)]',
+  ].join(' ');
+}
 
 export function AppShell({ children, familyId }: { children: React.ReactNode; familyId?: string }) {
   const { user, accessToken, loading, logout } = useAuth();
@@ -53,35 +60,29 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl px-4 py-6 sm:px-6">
       <Nav className="mb-6">
-        <NavBrand href="/app">RUMA</NavBrand>
+        <Link
+          href="/app"
+          className="mr-auto font-[family-name:var(--ruma-font-display)] text-[length:var(--ruma-text-xl)] font-bold tracking-tight text-[var(--ruma-color-ink)] no-underline"
+        >
+          RUMA
+        </Link>
         {currentFamilyId ? (
           <>
-            <NavLink
-              href={base}
-              className={pathname === base ? 'text-[var(--ruma-color-ink)] bg-black/5' : undefined}
-            >
+            <Link href={base} className={shellLinkClass(pathname === base)}>
               Home
-            </NavLink>
-            <NavLink
+            </Link>
+            <Link
               href={`${base}/members`}
-              className={
-                pathname?.includes('/members')
-                  ? 'text-[var(--ruma-color-ink)] bg-black/5'
-                  : undefined
-              }
+              className={shellLinkClass(Boolean(pathname?.includes('/members')))}
             >
               Family
-            </NavLink>
-            <NavLink
+            </Link>
+            <Link
               href={`${base}/settings`}
-              className={
-                pathname?.includes('/settings')
-                  ? 'text-[var(--ruma-color-ink)] bg-black/5'
-                  : undefined
-              }
+              className={shellLinkClass(Boolean(pathname?.includes('/settings')))}
             >
               Settings
-            </NavLink>
+            </Link>
           </>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
