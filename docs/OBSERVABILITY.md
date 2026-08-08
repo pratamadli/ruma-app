@@ -39,6 +39,7 @@ When `NODE_ENV=production`, Nest uses a JSON logger (`JsonLogger`):
 
 - Disabled when DSN is unset (local/CI default).
 - `sendDefaultPii: false`; sensitive header/cookie/token keys scrubbed in `beforeSend`.
+- Finance keys also scrubbed (`amount`, `balance`, `account`, `transaction`, …) — ADR-010.
 - API captures unhandled exceptions and HTTP 5xx via the global exception filter.
 - Web initializes on client mount and reports `global-error` boundary failures.
 

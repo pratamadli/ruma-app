@@ -1,6 +1,6 @@
 # RUMA — Product PRD
 
-## MVP (Phase 1 — implemented in product version `1.1.1`)
+## Phase 1 MVP (product version `1.1.x`)
 
 - Authentication
 - Family Workspace (create family, invite members, membership)
@@ -11,43 +11,40 @@
 - In-app Notifications (unread count, mark read)
 - Activity Feed
 
-## Version 1 — Home Management
+## Phase 2A — Household Finance (product version `2.0.0`)
 
-- Home Profile
-- Rooms
-- Assets
-- Maintenance
-- Documents
-- Notes
-- Knowledge Hub
+Approachable household money tracking — not accounting software.
+
+- Financial accounts (bank, cash, e-wallet, credit card)
+- Manual income / expense / transfer entry
+- Categories (seeded + custom; deactivate instead of hard delete)
+- Account balances (server-authoritative)
+- Transaction history with basic filters
+- Monthly summary + Finance dashboard (“how are we doing this month?”)
+- Privacy: no finance amounts in general activity/notifications
+
+### Later in Phase 2
+
+- **2B** Budgets and alerts
+- **2C** Trends / recurring detection
+- **2D** Email import + AI categorization
+
+## Phase 3 — Home Management
+
+- Home Profile, Rooms, Assets, Maintenance
+- Documents, Notes, Knowledge Hub
 - Technician/Service Contact Directory
 
-## Version 2 — Smart Finance
+## Later — Smart Finance extensions & Complete Product
 
-- Manual Transactions
-- Bills
-- Budget
-- Savings
-- Debt
-- Insurance
-- Investments
-- Net Worth
-- Email transaction parsing
-- AI categorization
-- Monthly AI financial report
-
-## Complete Product
-
-- Receipt OCR
-- Pantry
-- Family goals
-- Child/pet profiles
-- Travel
-- Subscriptions
-- Home timeline
-- AI household assistant
+- Bills, savings, debt, insurance, investments, net worth
+- Deeper automation and monthly AI financial reports
+- Receipt OCR, pantry, family goals, child/pet profiles, travel
+- Subscriptions, home timeline, AI household assistant
 - Admin and subscription platform
 
-## Service Marketplace Direction
+## Non-goals for current release
 
-Do not build booking initially. Maintain a trusted directory of service contacts. Booking can be considered later.
+- Bank API integrations
+- Investment / net-worth engines
+- Aggressive “you spent money” notifications

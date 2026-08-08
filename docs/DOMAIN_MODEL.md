@@ -46,7 +46,7 @@ Household Data (family-scoped resources)
 | **Calendar**        | Household events / shared schedule                           | MVP                                                             |
 | **Notifications**   | In-app notification records, read state                      | MVP (delivery channels evolve)                                  |
 | **Activity**        | Family activity feed events                                  | MVP                                                             |
-| **Finance**         | Accounts, transactions, bills, budgets, etc.                 | Future; high sensitivity                                        |
+| **Finance**         | Accounts, transactions, categories, summaries; budgets later | Phase 2A live; high sensitivity (ADR-010)                       |
 | **Assets**          | Owned items, warranties                                      | Future                                                          |
 | **Maintenance**     | Schedules, service history                                   | Future                                                          |
 | **Documents**       | Files metadata, links to storage                             | Future                                                          |
@@ -74,7 +74,7 @@ Household Data (family-scoped resources)
 
 ### Future domains (do not implement in Phase 0/1 beyond seams)
 
-Home, Finance, Assets, Maintenance, Documents, Knowledge, AI Copilot, Timeline, Pantry, Profiles (child/pet), Travel, Subscriptions/Admin, Service marketplace booking.
+Home/Assets/Maintenance/Documents/Knowledge (Phase 3+), Finance budgets & automation (Phase 2B–2D), AI Copilot, Timeline, Pantry, Profiles (child/pet), Travel, Subscriptions/Admin, Service marketplace booking.
 
 ---
 
@@ -130,8 +130,8 @@ Home, Finance, Assets, Maintenance, Documents, Knowledge, AI Copilot, Timeline, 
 Auth ──► User
 User ──► FamilyMembership ──► Family
 Family ◄── Tasks / Grocery / Calendar / Activity / Notifications
-Home (future) ──depends on──► Family
-Finance / Assets / Maintenance / Documents / Knowledge (future) ──depend on──► Family
+Finance (Phase 2A) ──depends on──► Family
+Home / Assets / Maintenance / Documents / Knowledge (future) ──depend on──► Family
 AI (future) ──reads──► family-scoped domains; writes only proposal/candidate records
 ```
 

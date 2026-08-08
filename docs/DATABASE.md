@@ -1,6 +1,6 @@
 # RUMA — Database Strategy
 
-**Status:** Accepted through Phase 1 MVP  
+**Status:** Accepted through Phase 2A Finance  
 **Engine:** PostgreSQL  
 **ORM:** Prisma  
 **Related:** `docs/05_DATABASE.md` (index), `SECURITY.md`, `DOMAIN_MODEL.md`
@@ -156,13 +156,14 @@ MVP candidates:
 - `created_at` / `updated_at` everywhere.
 - Activity feed for human-visible household events (separate domain concept).
 
-**Future (especially Finance)**
+**Finance (Phase 2A)**
 
-- Source metadata (`source_type`, `source_ref`, raw payload reference).
-- Optional immutable audit tables for sensitive mutations.
-- Actor user id on privileged changes.
+- Transactions soft-delete via `deleted_at` (excluded from balances/summaries).
+- Import-ready columns: `source`, `source_reference`, `confidence` (ADR-010).
+- Money stored as `BIGINT` minor units — never floating point.
+- Do **not** mirror finance amounts into `family_activities`.
 
-Do not build a universal audit framework in Phase 0.
+Optional immutable audit tables remain future work.
 
 ---
 
@@ -184,7 +185,7 @@ Do not build a universal audit framework in Phase 0.
 
 ---
 
-## 14. Schema (Phase 0 + Phase 1)
+## 14. Schema (Phase 0–2A)
 
 Migrations:
 
@@ -193,35 +194,39 @@ Migrations:
 - `20260808040000_phase1_household_collaboration`
 - `20260808050000_password_reset_tokens`
 - `20260808060000_recurrence_weekdays` (+ `20260808061000_…_columns`)
+- `20260808120000_phase2a_household_finance`
 
-| Table                   | Purpose                                                           |
-| ----------------------- | ----------------------------------------------------------------- |
-| `users`                 | Identity + Argon2id password hash                                 |
-| `refresh_tokens`        | Opaque refresh sessions (hashed at rest)                          |
-| `password_reset_tokens` | Single-use password reset tokens (hashed at rest)                 |
-| `families`              | Tenant root (`name`, `household_name`, `timezone`)                |
-| `family_memberships`    | User↔Family with `OWNER`/`ADMIN`/`MEMBER`                         |
-| `family_invitations`    | Email invites with hashed token + status machine                  |
-| `family_activities`     | Append-only structured family activity events                     |
-| `tasks`                 | Family chores (status/priority/assignee/due date/recurrence flag) |
-| `grocery_lists`         | One shared list per family                                        |
-| `grocery_items`         | Grocery line items + completion                                   |
-| `family_events`         | Shared calendar events                                            |
-| `notifications`         | In-app notifications per recipient                                |
+| Table                    | Purpose                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| `users`                  | Identity + Argon2id password hash                                 |
+| `refresh_tokens`         | Opaque refresh sessions (hashed at rest)                          |
+| `password_reset_tokens`  | Single-use password reset tokens (hashed at rest)                 |
+| `families`               | Tenant root (+ `default_currency`, default `IDR`)                 |
+| `family_memberships`     | User↔Family with `OWNER`/`ADMIN`/`MEMBER`                         |
+| `family_invitations`     | Email invites with hashed token + status machine                  |
+| `family_activities`      | Append-only structured family activity events                     |
+| `tasks`                  | Family chores (status/priority/assignee/due date/recurrence flag) |
+| `grocery_lists`          | One shared list per family                                        |
+| `grocery_items`          | Grocery line items + completion                                   |
+| `family_events`          | Shared calendar events                                            |
+| `notifications`          | In-app notifications per recipient                                |
+| `financial_accounts`     | Household accounts + opening balance (minor units)                |
+| `transaction_categories` | Family income/expense categories                                  |
+| `transactions`           | Normalized ledger (income/expense/transfer), soft-delete          |
 
 IDs are ULID (`CHAR(26)`), generated in application code.
 
-Date/time + recurrence rules: ADR-008. Finance tables remain future work.
+Date/time + recurrence rules: ADR-008. Money + transfers: ADR-010.
 
 ---
 
 ## 15. Data sensitivity classes (forward-looking)
 
-| Class            | Examples                                | Handling                                                                      |
-| ---------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| Public           | Health OK                               | No auth                                                                       |
-| Identity         | Email, name                             | Least privilege; never log secrets                                            |
-| Household        | Chores, grocery                         | Family ACL                                                                    |
-| Sensitive future | Transactions, receipts, account numbers | Encryption-at-rest via provider, strict ACL, audit source, minimize retention |
+| Class     | Examples                       | Handling                                                                    |
+| --------- | ------------------------------ | --------------------------------------------------------------------------- |
+| Public    | Health OK                      | No auth                                                                     |
+| Identity  | Email, name                    | Least privilege; never log secrets                                          |
+| Household | Chores, grocery                | Family ACL                                                                  |
+| Sensitive | Transactions, account balances | Family ACL, soft-delete ledger, scrub logs/Sentry, no activity-feed leakage |
 
 Do not store full payment credentials. Prefer references/tokens from providers if integrations appear later.

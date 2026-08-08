@@ -8,6 +8,9 @@ import type {
   FamilyListResponse,
   FamilyMembersResponse,
   FamilyResponse,
+  FinancialAccountListResponse,
+  FinancialAccountResponse,
+  FinanceSummaryResponse,
   GroceryItemResponse,
   GroceryListResponse,
   HealthResponse,
@@ -16,6 +19,10 @@ import type {
   NotificationListResponse,
   TaskListResponse,
   TaskResponse,
+  TransactionCategoryListResponse,
+  TransactionCategoryResponse,
+  TransactionListResponse,
+  TransactionResponse,
   UserResponse,
 } from '@ruma/types';
 
@@ -391,4 +398,168 @@ export function markNotificationRead(accessToken: string, notificationId: string
 
 export function markAllNotificationsRead(accessToken: string) {
   return apiFetch<{ ok: boolean }>('/notifications/read-all', { method: 'POST' }, { accessToken });
+}
+
+export function getFinanceSummary(accessToken: string, familyId: string, month?: string) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const qs = params.toString();
+  return apiFetch<FinanceSummaryResponse>(
+    `/families/${familyId}/finance/summary${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function listFinanceAccounts(accessToken: string, familyId: string) {
+  return apiFetch<FinancialAccountListResponse>(
+    `/families/${familyId}/finance/accounts`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceAccount(
+  accessToken: string,
+  familyId: string,
+  input: {
+    name: string;
+    type?: 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+    initialBalanceMinor?: string;
+    ownerUserId?: string | null;
+  },
+) {
+  return apiFetch<FinancialAccountResponse>(
+    `/families/${familyId}/finance/accounts`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceAccount(
+  accessToken: string,
+  familyId: string,
+  accountId: string,
+  input: {
+    name?: string;
+    type?: 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+    ownerUserId?: string | null;
+    isActive?: boolean;
+  },
+) {
+  return apiFetch<FinancialAccountResponse>(
+    `/families/${familyId}/finance/accounts/${accountId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function listFinanceCategories(accessToken: string, familyId: string) {
+  return apiFetch<TransactionCategoryListResponse>(
+    `/families/${familyId}/finance/categories`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceCategory(
+  accessToken: string,
+  familyId: string,
+  input: { name: string; kind: 'INCOME' | 'EXPENSE' },
+) {
+  return apiFetch<TransactionCategoryResponse>(
+    `/families/${familyId}/finance/categories`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceCategory(
+  accessToken: string,
+  familyId: string,
+  categoryId: string,
+  input: { name?: string; isActive?: boolean },
+) {
+  return apiFetch<TransactionCategoryResponse>(
+    `/families/${familyId}/finance/categories/${categoryId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function listFinanceTransactions(
+  accessToken: string,
+  familyId: string,
+  query: {
+    from?: string;
+    to?: string;
+    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    categoryId?: string;
+    accountId?: string;
+    q?: string;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  return apiFetch<TransactionListResponse>(
+    `/families/${familyId}/finance/transactions${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceTransaction(
+  accessToken: string,
+  familyId: string,
+  input: {
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor: string;
+    accountId: string;
+    transferAccountId?: string;
+    categoryId?: string | null;
+    description?: string;
+    transactionDate: string;
+  },
+) {
+  return apiFetch<TransactionResponse>(
+    `/families/${familyId}/finance/transactions`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceTransaction(
+  accessToken: string,
+  familyId: string,
+  transactionId: string,
+  input: {
+    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor?: string;
+    accountId?: string;
+    transferAccountId?: string | null;
+    categoryId?: string | null;
+    description?: string | null;
+    transactionDate?: string;
+  },
+) {
+  return apiFetch<TransactionResponse>(
+    `/families/${familyId}/finance/transactions/${transactionId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function deleteFinanceTransaction(
+  accessToken: string,
+  familyId: string,
+  transactionId: string,
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/transactions/${transactionId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
 }

@@ -180,5 +180,6 @@ Bento layouts are for dashboard overview compositions, not every page.
 - Landing page is a fixed, non-scrolling first viewport
 - Shared form controls (`Input` / `Select` / date fields) via `@ruma/ui` field chrome; brand lockup uses mark-as-R + `UMA`
 - App shell header is mobile-first: brand + actions on row 1, family switcher on row 2, horizontally scrollable nav pills on row 3
+- Finance (Phase 2A): `/app/f/[familyId]/finance` (+ accounts / transactions / categories); TanStack Query for summary, accounts, categories, transactions; amounts formatted as IDR strings — never JS floats for money math
 
 Do **not** build finance/assets/AI UI yet.

@@ -1,6 +1,6 @@
 # RUMA — API Architecture
 
-**Status:** Accepted through Phase 1 MVP  
+**Status:** Accepted through Phase 2A Finance  
 **Runtime:** NestJS in `apps/api`  
 **Related:** `docs/06_API_GUIDELINES.md`, `SECURITY.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/008-datetime-and-task-recurrence.md`
 
@@ -32,7 +32,8 @@ apps/api/src/
 ├── grocery/
 ├── calendar/
 ├── notifications/          # user inbox (not family-id in path)
-└── household/              # dashboard aggregation
+├── household/              # dashboard aggregation
+└── finance/                # accounts, transactions, categories, summary
 ```
 
 ### Module rules
@@ -207,7 +208,7 @@ Do not expose internals.
 
 ---
 
-## 14. Implemented surface (Phase 0 + Phase 1)
+## 14. Implemented surface (Phase 0–2A)
 
 ### Foundation
 
@@ -247,4 +248,18 @@ Guards: global `AuthGuard`, `FamilyMemberGuard`, `RolesGuard`, Nest throttler.
 
 Notifications are recipient-scoped: the API never returns another user’s inbox rows.
 
-Do **not** implement finance / assets / AI endpoints in Phase 1.
+### Household finance (Phase 2A)
+
+| Method           | Path                                                    | Auth                |
+| ---------------- | ------------------------------------------------------- | ------------------- |
+| GET/POST         | `/v1/families/:familyId/finance/accounts`               | Bearer + membership |
+| PATCH            | `/v1/families/:familyId/finance/accounts/:accountId`    | Bearer + membership |
+| GET/POST         | `/v1/families/:familyId/finance/categories`             | Bearer + membership |
+| PATCH            | `/v1/families/:familyId/finance/categories/:categoryId` | Bearer + membership |
+| GET/POST         | `/v1/families/:familyId/finance/transactions`           | Bearer + membership |
+| GET/PATCH/DELETE | `/v1/families/:familyId/finance/transactions/:id`       | Bearer + membership |
+| GET              | `/v1/families/:familyId/finance/summary`                | Bearer + membership |
+
+Money fields are decimal **strings** (minor units). See [modules/finance/API.md](./modules/finance/API.md).
+
+Do **not** implement budgets / email import / AI finance endpoints until Phase 2B–2D.

@@ -104,18 +104,15 @@ PII in logs should be minimized; prefer identifiers over emails in production lo
 
 ---
 
-## 9. Sensitive data handling (future finance readiness)
+## 9. Sensitive data handling (Finance Phase 2A)
 
-When finance arrives:
-
-- Store the minimum data required for the feature.
-- Preserve auditable source references for imported transactions.
-- Separate AI candidate data from confirmed business records.
-- Do not store full payment card PAN/CVV.
-- Encrypt sensitive fields if provider-at-rest encryption is insufficient for specific columns (decide per field with ADR).
-- Access to finance modules remains family-ACL bound; consider stronger admin/owner rules later.
-
-Phase 0 action: keep architecture free of shortcuts that would force storing unnecessary sensitive payloads in shared “json blob” tables without classification.
+- Finance is family-ACL bound (`FamilyMemberGuard`); cross-tenant → 404.
+- Store minimum fields; amounts as integer minor units (ADR-010).
+- Do **not** publish transaction amounts/descriptions into household Activity or Notifications.
+- Sentry `beforeSend` scrubs finance-related keys (amount, balance, account, transaction, …).
+- Never send financial details to analytics.
+- Preserve `source` / `source_reference` for future imports; no PAN/CVV storage.
+- Consider stronger owner/admin rules later if household privacy needs tighten.
 
 ---
 

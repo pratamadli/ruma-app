@@ -217,3 +217,98 @@ export type HouseholdDashboardResponse = {
   todayTasks: TaskResponse[];
   upcomingEvents: FamilyEventResponse[];
 };
+
+/** Minor-unit money as decimal string — never a JS number. */
+export type MoneyMinorString = string;
+
+export type FinancialAccountType = 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type CategoryKind = 'INCOME' | 'EXPENSE';
+export type TransactionSource = 'MANUAL' | 'IMPORT';
+
+export type FinancialAccountResponse = {
+  id: string;
+  familyId: string;
+  name: string;
+  type: FinancialAccountType;
+  currency: string;
+  initialBalanceMinor: MoneyMinorString;
+  /** Authoritative balance computed server-side. */
+  balanceMinor: MoneyMinorString;
+  ownerUserId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FinancialAccountListResponse = {
+  accounts: FinancialAccountResponse[];
+  currency: string;
+};
+
+export type TransactionCategoryResponse = {
+  id: string;
+  familyId: string;
+  name: string;
+  kind: CategoryKind;
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TransactionCategoryListResponse = {
+  categories: TransactionCategoryResponse[];
+};
+
+export type TransactionAccountRef = {
+  id: string;
+  name: string;
+  type: FinancialAccountType;
+};
+
+export type TransactionCategoryRef = {
+  id: string;
+  name: string;
+  kind: CategoryKind;
+};
+
+export type TransactionResponse = {
+  id: string;
+  familyId: string;
+  type: TransactionType;
+  amountMinor: MoneyMinorString;
+  currency: string;
+  account: TransactionAccountRef;
+  transferAccount: TransactionAccountRef | null;
+  category: TransactionCategoryRef | null;
+  description: string | null;
+  transactionDate: string;
+  source: TransactionSource;
+  createdBy: TaskMemberRef;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TransactionListResponse = {
+  transactions: TransactionResponse[];
+};
+
+export type FinanceCategoryTotal = {
+  categoryId: string;
+  name: string;
+  amountMinor: MoneyMinorString;
+};
+
+export type FinanceSummaryResponse = {
+  month: string;
+  currency: string;
+  incomeMinor: MoneyMinorString;
+  expenseMinor: MoneyMinorString;
+  netCashFlowMinor: MoneyMinorString;
+  transferMinor: MoneyMinorString;
+  expensesByCategory: FinanceCategoryTotal[];
+  recentTransactions: TransactionResponse[];
+  accounts: FinancialAccountResponse[];
+};
