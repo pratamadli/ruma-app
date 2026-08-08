@@ -9,11 +9,10 @@ export default function HomePage() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--ruma-color-accent-soft)_85%,transparent),transparent_55%),linear-gradient(180deg,var(--ruma-color-surface),color-mix(in_srgb,var(--ruma-color-accent-soft)_35%,var(--ruma-color-surface)))]"
       />
-      <section className="relative mx-auto grid min-h-[min(100vh,52rem)] w-full max-w-3xl place-content-center gap-8">
-        <RumaLockup withTagline className="h-auto w-full max-w-md text-[var(--ruma-color-ink)]" />
-        <p className="m-0 max-w-xl text-lg text-[var(--ruma-color-ink-muted)]">
-          Foundation phase — authentication, family tenancy, and design system are ready for MVP
-          work.
+      <section className="relative mx-auto flex min-h-[min(100vh,52rem)] w-full max-w-xl flex-col justify-center gap-8">
+        <RumaLockup withTagline />
+        <p className="m-0 max-w-md text-lg leading-relaxed text-[var(--ruma-color-ink-muted)]">
+          Your household workspace — tasks, groceries, calendar, and family life in one calm place.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/sign-in">
