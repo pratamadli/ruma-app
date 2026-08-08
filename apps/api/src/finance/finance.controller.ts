@@ -11,11 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  createBudgetSchema,
   createFinancialAccountSchema,
   createTransactionCategorySchema,
   createTransactionSchema,
   financeSummaryQuerySchema,
+  getBudgetQuerySchema,
   listTransactionsQuerySchema,
+  updateBudgetSchema,
   updateFinancialAccountSchema,
   updateTransactionCategorySchema,
   updateTransactionSchema,
@@ -24,12 +27,16 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { FamilyMemberGuard } from '../families/family-member.guard';
+import { BudgetService } from './budget.service';
 import { FinanceService } from './finance.service';
 
 @Controller('families/:familyId/finance')
 @UseGuards(FamilyMemberGuard)
 export class FinanceController {
-  constructor(private readonly finance: FinanceService) {}
+  constructor(
+    private readonly finance: FinanceService,
+    private readonly budgets: BudgetService,
+  ) {}
 
   @Get('accounts')
   listAccounts(@Param('familyId') familyId: string) {
@@ -125,5 +132,42 @@ export class FinanceController {
     @Query(new ZodValidationPipe(financeSummaryQuerySchema)) query: unknown,
   ) {
     return this.finance.getSummary(familyId, query as never);
+  }
+
+  @Get('budgets')
+  getBudgetForMonth(
+    @Param('familyId') familyId: string,
+    @Query(new ZodValidationPipe(getBudgetQuerySchema)) query: unknown,
+  ) {
+    return this.budgets.getForMonth(familyId, query as never);
+  }
+
+  @Post('budgets')
+  createBudget(
+    @Param('familyId') familyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(createBudgetSchema)) body: unknown,
+  ) {
+    return this.budgets.create(familyId, user.id, body as never);
+  }
+
+  @Get('budgets/:budgetId')
+  getBudget(@Param('familyId') familyId: string, @Param('budgetId') budgetId: string) {
+    return this.budgets.getById(familyId, budgetId);
+  }
+
+  @Patch('budgets/:budgetId')
+  updateBudget(
+    @Param('familyId') familyId: string,
+    @Param('budgetId') budgetId: string,
+    @Body(new ZodValidationPipe(updateBudgetSchema)) body: unknown,
+  ) {
+    return this.budgets.update(familyId, budgetId, body as never);
+  }
+
+  @Delete('budgets/:budgetId')
+  @HttpCode(200)
+  archiveBudget(@Param('familyId') familyId: string, @Param('budgetId') budgetId: string) {
+    return this.budgets.archive(familyId, budgetId);
   }
 }

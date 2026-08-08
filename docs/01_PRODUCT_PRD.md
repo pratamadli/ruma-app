@@ -23,9 +23,16 @@ Approachable household money tracking — not accounting software.
 - Monthly summary + Finance dashboard (“how are we doing this month?”)
 - Privacy: no finance amounts in general activity/notifications
 
+## Phase 2B — Budgeting (product version `2.1.0`)
+
+- Monthly household spending ceiling (optional)
+- Category envelopes linked to existing expense categories
+- Progress, remaining, over-budget state (server-calculated)
+- Budgets page with month navigation + Finance overview summary
+- UI alerts only — no email/scheduled notification jobs
+
 ### Later in Phase 2
 
-- **2B** Budgets and alerts
 - **2C** Trends / recurring detection
 - **2D** Email import + AI categorization
 

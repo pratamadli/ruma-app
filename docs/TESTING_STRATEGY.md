@@ -1,6 +1,6 @@
 # RUMA — Testing Strategy
 
-**Status:** Accepted through Phase 2A Finance
+**Status:** Accepted through Phase 2B Budgeting
 
 ---
 
@@ -38,6 +38,7 @@ Family + household collaboration (API integration):
 - Tasks / grocery / calendar / notifications + isolation (`household-collaboration.test.ts`).
 - Password reset: unknown email, invalid/expired/reused token, success + session revoke (`password-reset.test.ts`).
 - Finance acceptance scenario + isolation + soft delete (`finance/finance.test.ts`): balances, transfer≠expense, stranger 404.
+- Budgeting plan vs actual + income/transfer exclusion + isolation (`finance/budget.test.ts`).
 
 Integration tests that need DB require `DATABASE_URL` and clean up fixture users in `beforeAll`/`afterAll` (including notifications, household, and finance child tables).
 

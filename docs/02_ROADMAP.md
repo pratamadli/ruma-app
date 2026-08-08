@@ -1,6 +1,6 @@
 # RUMA Roadmap
 
-**Product version:** `2.0.0` (see root / `apps/web` / `apps/api` `package.json`)
+**Product version:** `2.1.0` (see root / `apps/web` / `apps/api` `package.json`)
 
 ## Phase 0 — Foundation
 
@@ -34,19 +34,21 @@ See [ADR-009](./adr/009-phase01-deferred-engineering.md):
 
 ## Phase 2 — Household Finance
 
-**Status: Phase 2A COMPLETE** (`2.0.0`)
+**Status: Phase 2A + 2B COMPLETE** (`2.0.0` / `2.1.0`)
 
-Financial source of truth for the household. Sensitive domain — family-scoped, no leakage into generic activity/notifications. See [ADR-010](./adr/010-household-finance-phase2a.md) and [modules/finance](./modules/finance/README.md).
+Financial source of truth for the household. Sensitive domain — family-scoped, no leakage into generic activity/notifications. See [ADR-010](./adr/010-household-finance-phase2a.md), [ADR-011](./adr/011-household-budgeting-phase2b.md), and [modules/finance](./modules/finance/README.md).
 
-### Phase 2A — Manual Finance Foundation (COMPLETE)
+### Phase 2A — Manual Finance Foundation (COMPLETE · `2.0.0`)
 
 - Accounts, categories, manual transactions
 - Transfers (excluded from expense totals)
 - Balances, filtering, monthly summary, Finance dashboard
 
-### Phase 2B — Budgeting (later)
+### Phase 2B — Budgeting (COMPLETE · `2.1.0`)
 
-- Monthly / category budgets, progress, alerts
+- Monthly household + category budgets
+- Progress / remaining / status from live expenses
+- Budgets page + overview integration (UI alerts; no notification jobs)
 
 ### Phase 2C — Financial Intelligence Foundation (later)
 

@@ -16,6 +16,12 @@ Guards: JWT + `FamilyMemberGuard` (cross-tenant → 404)
 | GET    | `/transactions/:transactionId` | Get one                                                                  |
 | PATCH  | `/transactions/:transactionId` | Edit                                                                     |
 | DELETE | `/transactions/:transactionId` | Soft delete                                                              |
-| GET    | `/summary`                     | Monthly dashboard (`month=YYYY-MM`)                                      |
+| GET    | `/summary`                     | Monthly dashboard (`month=YYYY-MM`, embeds ACTIVE `budget`)              |
+| GET    | `/budgets`                     | Budget for month + progress                                              |
+| POST   | `/budgets`                     | Create monthly budget                                                    |
+| GET    | `/budgets/:budgetId`           | Get one with progress                                                    |
+| PATCH  | `/budgets/:budgetId`           | Update total / items / status                                            |
+| DELETE | `/budgets/:budgetId`           | Archive                                                                  |
 
-Amounts are strings of integer minor units (`amountMinor`, `balanceMinor`, …).
+Amounts are strings of integer minor units (`amountMinor`, `balanceMinor`, …).  
+Budget details: [budgeting/API.md](./budgeting/API.md).

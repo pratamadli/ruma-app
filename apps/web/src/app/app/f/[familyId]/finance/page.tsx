@@ -1,20 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardDescription, CardTitle } from '@ruma/ui';
 import { AppShell } from '@/components/app-shell';
+import { BudgetProgressRow } from '@/components/budget-progress';
 import { FinanceSubnav } from '@/components/finance-subnav';
 import { useAuth } from '@/lib/auth-context';
 import { getFinanceSummary } from '@/lib/api';
-import { currentMonth, formatIdr, monthLabel } from '@/lib/money';
+import { currentMonth, formatAccountType, formatIdr, monthLabel, shiftMonth } from '@/lib/money';
 
 export default function FinanceDashboardPage() {
   const params = useParams<{ familyId: string }>();
   const familyId = params.familyId;
   const { accessToken } = useAuth();
-  const month = currentMonth();
+  const [month, setMonth] = useState(currentMonth());
 
   const summaryQuery = useQuery({
     queryKey: ['finance-summary', familyId, month, accessToken],
@@ -23,6 +25,7 @@ export default function FinanceDashboardPage() {
   });
 
   const summary = summaryQuery.data;
+  const budget = summary?.budget ?? null;
 
   return (
     <AppShell familyId={familyId}>
@@ -43,6 +46,25 @@ export default function FinanceDashboardPage() {
             </Link>
           </div>
           <FinanceSubnav familyId={familyId} />
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              className="rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] px-3 py-1.5 text-sm"
+              onClick={() => setMonth((m) => shiftMonth(m, -1))}
+              aria-label="Previous month"
+            >
+              ‹
+            </button>
+            <p className="m-0 text-sm font-medium">{monthLabel(month)}</p>
+            <button
+              type="button"
+              className="rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] px-3 py-1.5 text-sm"
+              onClick={() => setMonth((m) => shiftMonth(m, 1))}
+              aria-label="Next month"
+            >
+              ›
+            </button>
+          </div>
         </header>
 
         {summaryQuery.isLoading ? (
@@ -51,10 +73,65 @@ export default function FinanceDashboardPage() {
           <p className="text-[var(--ruma-color-danger)]">Unable to load finance summary.</p>
         ) : summary ? (
           <>
+            {budget?.household ? (
+              <section className="grid gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="m-0 text-lg font-semibold">Budget</h2>
+                  <Link
+                    href={`/app/f/${familyId}/finance/budgets`}
+                    className="text-sm text-[var(--ruma-color-ink-muted)]"
+                  >
+                    Manage
+                  </Link>
+                </div>
+                <BudgetProgressRow
+                  title="Household"
+                  budgetMinor={budget.household.budgetMinor}
+                  spentMinor={budget.household.spentMinor}
+                  remainingMinor={budget.household.remainingMinor}
+                  percentage={budget.household.percentage}
+                  status={budget.household.status}
+                />
+                {budget.items.length > 0 ? (
+                  <div className="mt-2 grid gap-3">
+                    {budget.items.slice(0, 4).map((item) => (
+                      <BudgetProgressRow
+                        key={item.id}
+                        title={item.categoryName}
+                        budgetMinor={item.budgetMinor}
+                        spentMinor={item.spentMinor}
+                        remainingMinor={item.remainingMinor}
+                        percentage={item.percentage}
+                        status={item.status}
+                        compact
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                {budget.alerts.length > 0 ? (
+                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
+                    {budget.alerts[0]?.message}
+                  </p>
+                ) : null}
+              </section>
+            ) : (
+              <Card>
+                <CardTitle>No budget for {monthLabel(month)}</CardTitle>
+                <CardDescription>
+                  Set a light spending plan so you can see what remains.
+                </CardDescription>
+                <div className="mt-3">
+                  <Link
+                    href={`/app/f/${familyId}/finance/budgets`}
+                    className="text-sm font-medium text-[var(--ruma-color-ink)]"
+                  >
+                    Create budget
+                  </Link>
+                </div>
+              </Card>
+            )}
+
             <section className="grid gap-1">
-              <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
-                {monthLabel(summary.month)}
-              </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Income</p>
@@ -104,7 +181,7 @@ export default function FinanceDashboardPage() {
                       <div>
                         <p className="m-0 font-medium">{account.name}</p>
                         <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
-                          {account.type.replace('_', ' ')}
+                          {formatAccountType(account.type)}
                         </p>
                       </div>
                       <p className="m-0 shrink-0 text-right font-medium tabular-nums">

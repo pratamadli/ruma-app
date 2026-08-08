@@ -74,6 +74,11 @@ enum TransactionSource {
   IMPORT
 }
 
+enum BudgetRecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
 model User {
   id           String   @id @db.Char(26)
   email        String   @unique
@@ -97,6 +102,7 @@ model User {
   ownedFinancialAccounts   FinancialAccount[] @relation("FinancialAccountOwner")
   createdFinancialAccounts FinancialAccount[] @relation("FinancialAccountCreator")
   createdTransactions      Transaction[]      @relation("TransactionCreator")
+  createdBudgets           Budget[]           @relation("BudgetCreator")
 
   @@map("users")
 }
@@ -118,9 +124,10 @@ model Family {
   groceryLists         GroceryList[]
   events               FamilyEvent[]
   notifications        Notification[]
-  financialAccounts    FinancialAccount[]
-  transactionCategories TransactionCategory[]
-  transactions         Transaction[]
+  financialAccounts     FinancialAccount[]
+  transactionCategories  TransactionCategory[]
+  transactions          Transaction[]
+  budgets               Budget[]
 
   @@map("families")
 }
@@ -352,6 +359,7 @@ model TransactionCategory {
 
   family       Family        @relation(fields: [familyId], references: [id], onDelete: Restrict)
   transactions Transaction[]
+  budgetItems  BudgetItem[]
 
   @@unique([familyId, name, kind])
   @@index([familyId, kind, isActive])
@@ -394,4 +402,44 @@ model Transaction {
   @@index([familyId, categoryId, transactionDate])
   @@index([familyId, deletedAt])
   @@map("transactions")
+}
+
+/// Monthly household budget plan (Phase 2B). Spent is always derived from expenses.
+model Budget {
+  id               String             @id @db.Char(26)
+  familyId         String             @map("family_id") @db.Char(26)
+  /// Calendar month `YYYY-MM`.
+  periodMonth      String             @map("period_month") @db.Char(7)
+  currency         String             @default("IDR") @db.Char(3)
+  /// Optional household spending ceiling (minor units). Independent of item sum.
+  totalAmountMinor BigInt?            @map("total_amount_minor")
+  status           BudgetRecordStatus @default(ACTIVE)
+  createdById      String             @map("created_by_id") @db.Char(26)
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt       DateTime?          @map("archived_at") @db.Timestamptz(6)
+
+  family    Family      @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  createdBy User        @relation("BudgetCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  items     BudgetItem[]
+
+  @@unique([familyId, periodMonth])
+  @@index([familyId, status, periodMonth])
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id          String   @id @db.Char(26)
+  budgetId    String   @map("budget_id") @db.Char(26)
+  categoryId  String   @map("category_id") @db.Char(26)
+  amountMinor BigInt   @map("amount_minor")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  budget   Budget              @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([budgetId, categoryId])
+  @@index([categoryId])
+  @@map("budget_items")
 }

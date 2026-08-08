@@ -11,7 +11,7 @@ import { resetApiEnvCache } from '../config/env';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
-describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
+describe.runIf(hasDatabase)('Household budgeting Phase 2B', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const suffix = Date.now();
@@ -37,7 +37,7 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
 
   afterAll(async () => {
     const users = await prisma.user.findMany({
-      where: { email: { contains: `finance-${suffix}` } },
+      where: { email: { contains: `budget-${suffix}` } },
       select: { id: true },
     });
     const userIds = users.map((u) => u.id);
@@ -54,6 +54,7 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
       await prisma.transactionCategory.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.financialAccount.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.familyActivity.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.familyInvitation.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.familyMembership.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.family.deleteMany({ where: { id: { in: familyIds } } });
     }
@@ -63,7 +64,7 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
     await app.close();
   });
 
-  it('supports accounts, transfers, summary, and family isolation', async () => {
+  it('tracks plan vs actual, excludes income/transfers, and isolates families', async () => {
     const server = app.getHttpServer();
     const today = new Date().toISOString().slice(0, 10);
     const month = today.slice(0, 7);
@@ -71,7 +72,7 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
     const a = await request(server)
       .post('/v1/auth/sign-up')
       .send({
-        email: `a-finance-${suffix}@example.com`,
+        email: `a-budget-${suffix}@example.com`,
         password: 'password123',
         name: 'Adli',
       })
@@ -79,7 +80,7 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
     const stranger = await request(server)
       .post('/v1/auth/sign-up')
       .send({
-        email: `s-finance-${suffix}@example.com`,
+        email: `s-budget-${suffix}@example.com`,
         password: 'password123',
         name: 'Stranger',
       })
@@ -91,50 +92,33 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
     const family = await request(server)
       .post('/v1/families')
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({ name: 'Finance Family', householdName: 'Home' })
+      .send({ name: 'Budget Family', householdName: 'Home' })
       .expect(201);
     const familyId = family.body.id as string;
-
-    await request(server)
-      .get(`/v1/families/${familyId}/finance/summary`)
-      .set('Authorization', `Bearer ${tokenS}`)
-      .expect(404);
 
     const bca = await request(server)
       .post(`/v1/families/${familyId}/finance/accounts`)
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({
-        name: 'BCA Savings',
-        type: 'BANK',
-        initialBalanceMinor: '10000000',
-      })
+      .send({ name: 'BCA', type: 'BANK', initialBalanceMinor: '10000000' })
       .expect(201);
     const gopay = await request(server)
       .post(`/v1/families/${familyId}/finance/accounts`)
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({
-        name: 'GoPay',
-        type: 'E_WALLET',
-        initialBalanceMinor: '0',
-      })
+      .send({ name: 'GoPay', type: 'E_WALLET', initialBalanceMinor: '0' })
       .expect(201);
 
     const categories = await request(server)
       .get(`/v1/families/${familyId}/finance/categories`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const salary = categories.body.categories.find(
-      (c: { name: string; kind: string }) => c.name === 'Salary' && c.kind === 'INCOME',
-    );
-    const food = categories.body.categories.find(
-      (c: { name: string; kind: string }) => c.name === 'Food & Dining' && c.kind === 'EXPENSE',
-    );
-    const transport = categories.body.categories.find(
-      (c: { name: string; kind: string }) => c.name === 'Transportation' && c.kind === 'EXPENSE',
-    );
-    expect(salary).toBeTruthy();
-    expect(food).toBeTruthy();
-    expect(transport).toBeTruthy();
+    const findCat = (name: string, kind: string) =>
+      categories.body.categories.find(
+        (c: { name: string; kind: string }) => c.name === name && c.kind === kind,
+      );
+    const salary = findCat('Salary', 'INCOME');
+    const food = findCat('Food & Dining', 'EXPENSE');
+    const transport = findCat('Transportation', 'EXPENSE');
+    const shopping = findCat('Shopping', 'EXPENSE');
 
     await request(server)
       .post(`/v1/families/${familyId}/finance/transactions`)
@@ -144,10 +128,44 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
         amountMinor: '15000000',
         accountId: bca.body.id,
         categoryId: salary.id,
-        description: 'Salary',
         transactionDate: today,
       })
       .expect(201);
+
+    await request(server)
+      .post(`/v1/families/${familyId}/finance/transactions`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        type: 'TRANSFER',
+        amountMinor: '500000',
+        accountId: bca.body.id,
+        transferAccountId: gopay.body.id,
+        transactionDate: today,
+      })
+      .expect(201);
+
+    const budget = await request(server)
+      .post(`/v1/families/${familyId}/finance/budgets`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        periodMonth: month,
+        totalAmountMinor: '8000000',
+        items: [
+          { categoryId: food.id, amountMinor: '2000000' },
+          { categoryId: transport.id, amountMinor: '1000000' },
+          { categoryId: shopping.id, amountMinor: '750000' },
+        ],
+      })
+      .expect(201);
+
+    await request(server)
+      .post(`/v1/families/${familyId}/finance/budgets`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        periodMonth: month,
+        totalAmountMinor: '1000000',
+      })
+      .expect(409);
 
     await request(server)
       .post(`/v1/families/${familyId}/finance/transactions`)
@@ -161,20 +179,6 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
         transactionDate: today,
       })
       .expect(201);
-
-    await request(server)
-      .post(`/v1/families/${familyId}/finance/transactions`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({
-        type: 'TRANSFER',
-        amountMinor: '500000',
-        accountId: bca.body.id,
-        transferAccountId: gopay.body.id,
-        description: 'Top up',
-        transactionDate: today,
-      })
-      .expect(201);
-
     await request(server)
       .post(`/v1/families/${familyId}/finance/transactions`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -183,54 +187,88 @@ describe.runIf(hasDatabase)('Household finance Phase 2A', () => {
         amountMinor: '100000',
         accountId: gopay.body.id,
         categoryId: transport.id,
-        description: 'Ride',
+        description: 'Transport',
+        transactionDate: today,
+      })
+      .expect(201);
+    await request(server)
+      .post(`/v1/families/${familyId}/finance/transactions`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        type: 'EXPENSE',
+        amountMinor: '450000',
+        accountId: bca.body.id,
+        categoryId: food.id,
+        description: 'Groceries',
         transactionDate: today,
       })
       .expect(201);
 
-    const summary = await request(server)
-      .get(`/v1/families/${familyId}/finance/summary`)
+    const view = await request(server)
+      .get(`/v1/families/${familyId}/finance/budgets`)
       .query({ month })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
 
-    expect(summary.body.incomeMinor).toBe('15000000');
-    expect(summary.body.expenseMinor).toBe('250000');
-    expect(summary.body.transferMinor).toBe('500000');
-    expect(summary.body.netCashFlowMinor).toBe('14750000');
+    expect(view.body.budget.id).toBe(budget.body.id);
+    expect(view.body.budget.household.budgetMinor).toBe('8000000');
+    expect(view.body.expenseTotalMinor).toBe('700000');
+    expect(view.body.budget.household.spentMinor).toBe('700000');
+    expect(view.body.budget.household.remainingMinor).toBe('7300000');
+    const foodItem = view.body.budget.items.find(
+      (i: { categoryId: string }) => i.categoryId === food.id,
+    );
+    const transportItem = view.body.budget.items.find(
+      (i: { categoryId: string }) => i.categoryId === transport.id,
+    );
+    const shoppingItem = view.body.budget.items.find(
+      (i: { categoryId: string }) => i.categoryId === shopping.id,
+    );
 
-    const bcaBal = summary.body.accounts.find((x: { id: string }) => x.id === bca.body.id);
-    const gopayBal = summary.body.accounts.find((x: { id: string }) => x.id === gopay.body.id);
-    expect(bcaBal.balanceMinor).toBe('24350000');
-    expect(gopayBal.balanceMinor).toBe('400000');
+    expect(foodItem.spentMinor).toBe('600000');
+    expect(foodItem.remainingMinor).toBe('1400000');
+    expect(foodItem.percentage).toBe(30);
+    expect(transportItem.spentMinor).toBe('100000');
+    expect(transportItem.remainingMinor).toBe('900000');
+    expect(transportItem.percentage).toBe(10);
+    expect(shoppingItem.spentMinor).toBe('0');
+    expect(shoppingItem.remainingMinor).toBe('750000');
+    expect(shoppingItem.percentage).toBe(0);
 
-    const activities = await prisma.familyActivity.count({
-      where: {
-        familyId,
-        type: { contains: 'FINANCE' },
-      },
-    });
-    expect(activities).toBe(0);
-
-    const txnList = await request(server)
-      .get(`/v1/families/${familyId}/finance/transactions`)
-      .query({ type: 'EXPENSE' })
-      .set('Authorization', `Bearer ${tokenA}`)
-      .expect(200);
-    expect(txnList.body.transactions).toHaveLength(2);
-
-    const expenseId = txnList.body.transactions[0].id as string;
     await request(server)
-      .get(`/v1/families/${familyId}/finance/transactions/${expenseId}`)
+      .get(`/v1/families/${familyId}/finance/budgets/${budget.body.id}`)
       .set('Authorization', `Bearer ${tokenS}`)
       .expect(404);
 
     await request(server)
-      .delete(`/v1/families/${familyId}/finance/transactions/${expenseId}`)
+      .patch(`/v1/families/${familyId}/finance/budgets/${budget.body.id}`)
+      .set('Authorization', `Bearer ${tokenS}`)
+      .send({ totalAmountMinor: '1' })
+      .expect(404);
+
+    const patched = await request(server)
+      .patch(`/v1/families/${familyId}/finance/budgets/${budget.body.id}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        items: [
+          { categoryId: food.id, amountMinor: '2500000' },
+          { categoryId: transport.id, amountMinor: '1000000' },
+        ],
+      })
+      .expect(200);
+    expect(patched.body.items).toHaveLength(2);
+
+    await request(server)
+      .delete(`/v1/families/${familyId}/finance/budgets/${budget.body.id}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
 
-    const soft = await prisma.transaction.findUnique({ where: { id: expenseId } });
-    expect(soft?.deletedAt).not.toBeNull();
+    const archived = await prisma.budget.findUnique({ where: { id: budget.body.id } });
+    expect(archived?.status).toBe('ARCHIVED');
+
+    const activities = await prisma.familyActivity.count({
+      where: { familyId, type: { contains: 'BUDGET' } },
+    });
+    expect(activities).toBe(0);
   });
 });

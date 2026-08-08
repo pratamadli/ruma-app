@@ -21,6 +21,7 @@ import type {
 } from '@ruma/validation';
 import { PrismaService } from '../prisma/prisma.service';
 import { createId } from '../common/ids';
+import { BudgetService } from './budget.service';
 import { DEFAULT_TRANSACTION_CATEGORIES } from './default-categories';
 import {
   currentUtcMonth,
@@ -41,7 +42,10 @@ type TxnWithRelations = Transaction & {
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly budgets: BudgetService,
+  ) {}
 
   // ─── Accounts ─────────────────────────────────────────────────────────────
 
@@ -415,6 +419,8 @@ export class FinanceService {
       }))
       .sort((a, b) => Number(BigInt(b.amountMinor) - BigInt(a.amountMinor)));
 
+    const budget = await this.budgets.getActiveProgressForMonth(familyId, month);
+
     return {
       month,
       currency: family.defaultCurrency,
@@ -425,6 +431,7 @@ export class FinanceService {
       expensesByCategory,
       recentTransactions: recent.map((t: TxnWithRelations) => this.toTransactionResponse(t)),
       accounts: accountsList.accounts.filter((a) => a.isActive),
+      budget,
     };
   }
 

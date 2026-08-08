@@ -37,3 +37,23 @@ export function monthLabel(month: string): string {
     year: 'numeric',
   });
 }
+
+export function shiftMonth(month: string, delta: number): string {
+  const parts = month.split('-').map(Number);
+  const y = parts[0] ?? 1970;
+  const m = parts[1] ?? 1;
+  const date = new Date(y, m - 1 + delta, 1);
+  const yy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  return `${yy}-${mm}`;
+}
+
+export function formatAccountType(type: string): string {
+  return type.replaceAll('_', ' ');
+}
+
+export function formatPercent(value: number | null | undefined): string {
+  if (value == null) return '—';
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
+}

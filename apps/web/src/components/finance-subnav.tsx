@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const links = [
   { suffix: '', label: 'Overview' },
+  { suffix: '/budgets', label: 'Budgets' },
   { suffix: '/transactions', label: 'Transactions' },
   { suffix: '/accounts', label: 'Accounts' },
   { suffix: '/categories', label: 'Categories' },

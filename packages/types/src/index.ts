@@ -311,4 +311,53 @@ export type FinanceSummaryResponse = {
   expensesByCategory: FinanceCategoryTotal[];
   recentTransactions: TransactionResponse[];
   accounts: FinancialAccountResponse[];
+  /** Present when an ACTIVE budget exists for the month. */
+  budget: BudgetProgressResponse | null;
+};
+
+export type BudgetRecordStatus = 'ACTIVE' | 'ARCHIVED';
+export type BudgetHealthStatus = 'ON_TRACK' | 'WARNING' | 'OVER_BUDGET';
+
+export type BudgetProgressMetrics = {
+  budgetMinor: MoneyMinorString;
+  spentMinor: MoneyMinorString;
+  remainingMinor: MoneyMinorString;
+  /** Percent of budget used; null when budget is zero. Not capped at 100. */
+  percentage: number | null;
+  status: BudgetHealthStatus;
+};
+
+export type BudgetItemProgressResponse = BudgetProgressMetrics & {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+};
+
+export type BudgetAlertResponse = {
+  categoryId: string | null;
+  categoryName: string | null;
+  status: BudgetHealthStatus;
+  message: string;
+};
+
+export type BudgetProgressResponse = {
+  id: string;
+  familyId: string;
+  periodMonth: string;
+  currency: string;
+  status: BudgetRecordStatus;
+  household: BudgetProgressMetrics | null;
+  items: BudgetItemProgressResponse[];
+  alerts: BudgetAlertResponse[];
+  /** All EXPENSE spending in the month (even without a household ceiling). */
+  expenseTotalMinor: MoneyMinorString;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BudgetMonthResponse = {
+  month: string;
+  currency: string;
+  expenseTotalMinor: MoneyMinorString;
+  budget: BudgetProgressResponse | null;
 };

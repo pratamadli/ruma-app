@@ -1,6 +1,6 @@
 # RUMA — API Architecture
 
-**Status:** Accepted through Phase 2A Finance  
+**Status:** Accepted through Phase 2B Budgeting  
 **Runtime:** NestJS in `apps/api`  
 **Related:** `docs/06_API_GUIDELINES.md`, `SECURITY.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/008-datetime-and-task-recurrence.md`
 
@@ -262,4 +262,13 @@ Notifications are recipient-scoped: the API never returns another user’s inbox
 
 Money fields are decimal **strings** (minor units). See [modules/finance/API.md](./modules/finance/API.md).
 
-Do **not** implement budgets / email import / AI finance endpoints until Phase 2B–2D.
+### Household budgeting (Phase 2B)
+
+| Method           | Path                                               | Auth                |
+| ---------------- | -------------------------------------------------- | ------------------- |
+| GET/POST         | `/v1/families/:familyId/finance/budgets`           | Bearer + membership |
+| GET/PATCH/DELETE | `/v1/families/:familyId/finance/budgets/:budgetId` | Bearer + membership |
+
+See [modules/finance/budgeting/API.md](./modules/finance/budgeting/API.md).
+
+Do **not** implement email import / AI finance endpoints until Phase 2C–2D.

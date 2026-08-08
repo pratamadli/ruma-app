@@ -46,7 +46,7 @@ Household Data (family-scoped resources)
 | **Calendar**        | Household events / shared schedule                           | MVP                                                             |
 | **Notifications**   | In-app notification records, read state                      | MVP (delivery channels evolve)                                  |
 | **Activity**        | Family activity feed events                                  | MVP                                                             |
-| **Finance**         | Accounts, transactions, categories, summaries; budgets later | Phase 2A live; high sensitivity (ADR-010)                       |
+| **Finance**         | Accounts, transactions, categories, budgets, summaries       | Phase 2A–2B live; high sensitivity (ADR-010/011)                |
 | **Assets**          | Owned items, warranties                                      | Future                                                          |
 | **Maintenance**     | Schedules, service history                                   | Future                                                          |
 | **Documents**       | Files metadata, links to storage                             | Future                                                          |

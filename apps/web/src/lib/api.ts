@@ -1,5 +1,7 @@
 import type {
   AuthTokensResponse,
+  BudgetMonthResponse,
+  BudgetProgressResponse,
   FamilyActivityListResponse,
   FamilyEventListResponse,
   FamilyEventResponse,
@@ -559,6 +561,58 @@ export function deleteFinanceTransaction(
 ) {
   return apiFetch<{ ok: boolean }>(
     `/families/${familyId}/finance/transactions/${transactionId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function getFinanceBudget(accessToken: string, familyId: string, month?: string) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const qs = params.toString();
+  return apiFetch<BudgetMonthResponse>(
+    `/families/${familyId}/finance/budgets${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceBudget(
+  accessToken: string,
+  familyId: string,
+  input: {
+    periodMonth: string;
+    totalAmountMinor?: string | null;
+    items?: Array<{ categoryId: string; amountMinor: string }>;
+  },
+) {
+  return apiFetch<BudgetProgressResponse>(
+    `/families/${familyId}/finance/budgets`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceBudget(
+  accessToken: string,
+  familyId: string,
+  budgetId: string,
+  input: {
+    totalAmountMinor?: string | null;
+    items?: Array<{ categoryId: string; amountMinor: string }>;
+    status?: 'ACTIVE' | 'ARCHIVED';
+  },
+) {
+  return apiFetch<BudgetProgressResponse>(
+    `/families/${familyId}/finance/budgets/${budgetId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function archiveFinanceBudget(accessToken: string, familyId: string, budgetId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/budgets/${budgetId}`,
     { method: 'DELETE' },
     { accessToken },
   );

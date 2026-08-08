@@ -9,7 +9,7 @@ import { AppShell } from '@/components/app-shell';
 import { FinanceSubnav } from '@/components/finance-subnav';
 import { useAuth } from '@/lib/auth-context';
 import { createFinanceAccount, listFinanceAccounts, updateFinanceAccount } from '@/lib/api';
-import { formatIdr, parseIdrInput } from '@/lib/money';
+import { formatAccountType, formatIdr, parseIdrInput } from '@/lib/money';
 
 const ACCOUNT_TYPES: FinancialAccountType[] = ['BANK', 'CASH', 'E_WALLET', 'CREDIT_CARD', 'OTHER'];
 
@@ -105,7 +105,7 @@ export default function FinanceAccountsPage() {
                 >
                   {ACCOUNT_TYPES.map((item) => (
                     <option key={item} value={item}>
-                      {item.replace('_', ' ')}
+                      {formatAccountType(item)}
                     </option>
                   ))}
                 </Select>
@@ -154,7 +154,7 @@ export default function FinanceAccountsPage() {
                     ) : null}
                   </p>
                   <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
-                    {account.type.replace('_', ' ')} · opening{' '}
+                    {formatAccountType(account.type)} · opening{' '}
                     {formatIdr(account.initialBalanceMinor)}
                   </p>
                 </div>
