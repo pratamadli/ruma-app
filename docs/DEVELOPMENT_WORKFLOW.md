@@ -6,7 +6,7 @@
 
 ## 1. Prerequisites
 
-- Node.js 22+ (CI pins a current LTS/Active version)
+- Node.js 22.x (CI and Railway pin 22; see `.nvmrc`)
 - pnpm 9+ (repo includes packageManager field)
 - PostgreSQL 16+ (local install; no Docker)
 

@@ -1,0 +1,4 @@
+# Pin Node 22 — Node 24 + Corepack pnpm 11 fails on Railway
+# (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING).
+[variables]
+NIXPACKS_NODE_VERSION = "22"

@@ -4,6 +4,8 @@ Deploy order: **Postgres → API → Web**.
 
 No Docker in this repo. Local Postgres is a native install (e.g. Homebrew). Production uses managed Postgres on Railway.
 
+**Node:** production/CI use **Node 22** (see `.nvmrc`, `nixpacks.toml`). Node 24 breaks Corepack + pnpm 11 on Railway.
+
 | Piece      | Host                                           | Config in repo                   |
 | ---------- | ---------------------------------------------- | -------------------------------- |
 | PostgreSQL | [Railway](https://railway.app) Postgres plugin | —                                |

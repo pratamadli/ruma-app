@@ -1,6 +1,8 @@
 # Railway service for apps/api — Nixpacks (Node/pnpm), no containers in-repo.
+# Node version pinned via nixpacks.toml (22) — avoid Node 24 + Corepack pnpm break.
 [build]
 builder = "NIXPACKS"
+nixpacksConfigPath = "nixpacks.toml"
 buildCommand = "pnpm install --frozen-lockfile && pnpm turbo run build --filter=@ruma/api..."
 
 [deploy]
