@@ -138,11 +138,17 @@ export function RumaBrand({
   }
   return (
     <span
-      className={cn('inline-flex items-center gap-2.5 text-[var(--ruma-color-ink)]', className)}
+      className={cn(
+        'inline-flex items-center gap-2 text-[var(--ruma-color-ink)] sm:gap-2.5',
+        className,
+      )}
       aria-label="RUMA"
     >
-      <RumaMark className={cn('h-8 w-8 shrink-0', markClassName)} showDoor={showDoor} />
-      <UmaLetters className="text-[length:var(--ruma-text-xl)]" />
+      <RumaMark
+        className={cn('h-7 w-7 shrink-0 sm:h-8 sm:w-8', markClassName)}
+        showDoor={showDoor}
+      />
+      <UmaLetters className="text-lg sm:text-[length:var(--ruma-text-xl)]" />
     </span>
   );
 }

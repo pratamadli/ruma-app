@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Nav, RumaBrand, Select } from '@ruma/ui';
+import { Button, RumaBrand, Select } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 import { hydrateActiveFamilyId, setActiveFamilyId, type RootState } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
@@ -14,8 +14,10 @@ import { APP_VERSION } from '@/lib/version';
 
 function shellLinkClass(active: boolean) {
   return [
-    'rounded-[var(--ruma-radius-sm)] px-3 py-2 text-[length:var(--ruma-text-sm)] font-medium no-underline transition-colors hover:bg-black/5 hover:text-[var(--ruma-color-ink)]',
-    active ? 'text-[var(--ruma-color-ink)] bg-black/5' : 'text-[var(--ruma-color-ink-muted)]',
+    'shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium no-underline transition-colors',
+    active
+      ? 'bg-[var(--ruma-color-ink)] text-[var(--ruma-color-surface)]'
+      : 'bg-black/[0.04] text-[var(--ruma-color-ink-muted)] hover:bg-black/[0.07] hover:text-[var(--ruma-color-ink)]',
   ].join(' ');
 }
 
@@ -58,57 +60,69 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
 
   const currentFamilyId = familyId ?? activeFamilyId;
   const base = currentFamilyId ? `/app/f/${currentFamilyId}` : '/app';
+  const families = familiesQuery.data?.families ?? [];
+
+  const navItems = currentFamilyId
+    ? [
+        { href: base, label: 'Home', active: pathname === base },
+        {
+          href: `${base}/tasks`,
+          label: 'Tasks',
+          active: Boolean(pathname?.includes('/tasks')),
+        },
+        {
+          href: `${base}/grocery`,
+          label: 'Grocery',
+          active: Boolean(pathname?.includes('/grocery')),
+        },
+        {
+          href: `${base}/calendar`,
+          label: 'Calendar',
+          active: Boolean(pathname?.includes('/calendar')),
+        },
+        {
+          href: `${base}/members`,
+          label: 'Family',
+          active: Boolean(pathname?.includes('/members')),
+        },
+        {
+          href: `${base}/settings`,
+          label: 'Settings',
+          active: Boolean(pathname?.includes('/settings')),
+        },
+      ]
+    : [];
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-5xl px-4 py-6 sm:px-6">
-      <Nav className="mb-6">
-        <Link href="/app" className="mr-auto no-underline" aria-label="RUMA home">
-          <RumaBrand />
-        </Link>
-        {currentFamilyId ? (
-          <>
-            <Link href={base} className={shellLinkClass(pathname === base)}>
-              Home
-            </Link>
-            <Link
-              href={`${base}/tasks`}
-              className={shellLinkClass(Boolean(pathname?.includes('/tasks')))}
+    <div className="mx-auto min-h-screen w-full max-w-5xl px-4 py-4 sm:px-6 sm:py-6">
+      <header className="mb-5 border-b border-[var(--ruma-color-border)] pb-4 sm:mb-6">
+        {/* Top row: brand + actions — never compete with nav links */}
+        <div className="flex items-center gap-2">
+          <Link href="/app" className="min-w-0 no-underline" aria-label="RUMA home">
+            <RumaBrand className="gap-2" markClassName="h-7 w-7 sm:h-8 sm:w-8" />
+          </Link>
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <NotificationsMenu />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 whitespace-nowrap px-2.5 sm:px-3"
+              onClick={async () => {
+                await logout();
+                router.push('/');
+              }}
             >
-              Tasks
-            </Link>
-            <Link
-              href={`${base}/grocery`}
-              className={shellLinkClass(Boolean(pathname?.includes('/grocery')))}
-            >
-              Grocery
-            </Link>
-            <Link
-              href={`${base}/calendar`}
-              className={shellLinkClass(Boolean(pathname?.includes('/calendar')))}
-            >
-              Calendar
-            </Link>
-            <Link
-              href={`${base}/members`}
-              className={shellLinkClass(Boolean(pathname?.includes('/members')))}
-            >
-              Family
-            </Link>
-            <Link
-              href={`${base}/settings`}
-              className={shellLinkClass(Boolean(pathname?.includes('/settings')))}
-            >
-              Settings
-            </Link>
-          </>
-        ) : null}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <NotificationsMenu />
-          {(familiesQuery.data?.families.length ?? 0) > 0 ? (
+              Sign out
+            </Button>
+          </div>
+        </div>
+
+        {/* Family switcher on its own row so it doesn't crush the header */}
+        {families.length > 0 ? (
+          <div className="mt-3 sm:mt-3.5 sm:max-w-xs">
             <Select
               id="family-switcher"
               aria-label="Switch family"
-              className="w-auto max-w-[10rem] min-w-[8.5rem] sm:max-w-xs"
               value={currentFamilyId ?? ''}
               onChange={(event) => {
                 const next = event.target.value;
@@ -116,30 +130,36 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
                 router.push(`/app/f/${next}`);
               }}
             >
-              {familiesQuery.data?.families.map((family) => (
+              {families.map((family) => (
                 <option key={family.id} value={family.id}>
                   {family.name}
                 </option>
               ))}
             </Select>
-          ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={async () => {
-              await logout();
-              router.push('/');
-            }}
+          </div>
+        ) : null}
+
+        {/* Horizontal scroll nav on mobile; wraps cleanly on larger screens */}
+        {navItems.length > 0 ? (
+          <nav
+            aria-label="Household"
+            className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
           >
-            Sign out
-          </Button>
-        </div>
-      </Nav>
-      {children}
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className={shellLinkClass(item.active)}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+      </header>
+
+      <div className="min-w-0">{children}</div>
+
       <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ruma-color-ink-muted)]">
-        <p className="m-0">
-          <Link href="/">RUMA</Link> · signed in as {user.email}
+        <p className="m-0 min-w-0 truncate">
+          <Link href="/">RUMA</Link>
+          <span className="hidden sm:inline"> · signed in as {user.email}</span>
         </p>
         <p className="m-0 tracking-[0.12em] text-[var(--ruma-color-ink-muted)]/55">
           v{APP_VERSION}

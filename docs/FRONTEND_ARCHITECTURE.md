@@ -179,5 +179,6 @@ Bento layouts are for dashboard overview compositions, not every page.
 - Product version footer (`v{version}` from `apps/web/package.json` via `NEXT_PUBLIC_APP_VERSION`); home footer also links quietly to `/design-system`
 - Landing page is a fixed, non-scrolling first viewport
 - Shared form controls (`Input` / `Select` / date fields) via `@ruma/ui` field chrome; brand lockup uses mark-as-R + `UMA`
+- App shell header is mobile-first: brand + actions on row 1, family switcher on row 2, horizontally scrollable nav pills on row 3
 
 Do **not** build finance/assets/AI UI yet.
