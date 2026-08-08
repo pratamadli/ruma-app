@@ -361,3 +361,100 @@ export type BudgetMonthResponse = {
   expenseTotalMinor: MoneyMinorString;
   budget: BudgetProgressResponse | null;
 };
+
+/** Phase 2C — deterministic financial intelligence (derived, not persisted). */
+export type FinanceMonthTotals = {
+  month: string;
+  incomeMinor: MoneyMinorString;
+  expenseMinor: MoneyMinorString;
+  netCashFlowMinor: MoneyMinorString;
+};
+
+export type MoneyDelta = {
+  currentMinor: MoneyMinorString;
+  previousMinor: MoneyMinorString;
+  differenceMinor: MoneyMinorString;
+  percentageChange: number | null;
+};
+
+export type MonthComparisonResponse = {
+  currentMonth: string;
+  previousMonth: string;
+  expenses: MoneyDelta;
+  income: MoneyDelta;
+  netCashFlow: MoneyDelta;
+};
+
+export type FinanceTopCategory = {
+  categoryId: string;
+  name: string;
+  amountMinor: MoneyMinorString;
+  percentageOfExpenses: number | null;
+};
+
+export type FinanceCategoryChange = {
+  categoryId: string;
+  name: string;
+  currentMinor: MoneyMinorString;
+  previousMinor: MoneyMinorString;
+  differenceMinor: MoneyMinorString;
+  percentageChange: number | null;
+};
+
+export type RecurringPatternResponse = {
+  label: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  typicalAmountMinor: MoneyMinorString;
+  occurrenceCount: number;
+  cadence: 'MONTHLY';
+  confidence: 'LIKELY';
+  firstSeen: string;
+  lastSeen: string;
+};
+
+export type FinanceInsightSeverity = 'INFO' | 'ATTENTION';
+
+export type FinanceInsightType =
+  | 'SPENDING_INCREASE'
+  | 'SPENDING_DECREASE'
+  | 'TOP_CATEGORY'
+  | 'CATEGORY_INCREASE'
+  | 'CATEGORY_SPIKE'
+  | 'MONTH_SPIKE'
+  | 'BUDGET_WARNING'
+  | 'OVER_BUDGET'
+  | 'RECURRING_PATTERN'
+  | 'LARGE_TRANSACTION'
+  | 'INSUFFICIENT_DATA';
+
+export type FinanceInsightResponse = {
+  type: FinanceInsightType | string;
+  severity: FinanceInsightSeverity;
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+};
+
+export type FinanceAnomalyResponse = {
+  type: 'LARGE_TRANSACTION' | 'CATEGORY_SPIKE' | 'MONTH_SPIKE' | string;
+  severity: FinanceInsightSeverity;
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+};
+
+export type FinanceAnalysisResponse = {
+  month: string;
+  currency: string;
+  monthsWithData: number;
+  summary: FinanceMonthTotals;
+  comparison: MonthComparisonResponse;
+  trend: FinanceMonthTotals[];
+  topCategories: FinanceTopCategory[];
+  categoryChanges: FinanceCategoryChange[];
+  budget: BudgetProgressResponse | null;
+  recurring: RecurringPatternResponse[];
+  anomalies: FinanceAnomalyResponse[];
+  insights: FinanceInsightResponse[];
+};

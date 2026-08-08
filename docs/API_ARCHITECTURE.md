@@ -1,6 +1,6 @@
 # RUMA — API Architecture
 
-**Status:** Accepted through Phase 2B Budgeting  
+**Status:** Accepted through Phase 2C Financial Intelligence  
 **Runtime:** NestJS in `apps/api`  
 **Related:** `docs/06_API_GUIDELINES.md`, `SECURITY.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/008-datetime-and-task-recurrence.md`
 
@@ -271,4 +271,12 @@ Money fields are decimal **strings** (minor units). See [modules/finance/API.md]
 
 See [modules/finance/budgeting/API.md](./modules/finance/budgeting/API.md).
 
-Do **not** implement email import / AI finance endpoints until Phase 2C–2D.
+### Financial intelligence (Phase 2C)
+
+| Method | Path                                      | Auth                |
+| ------ | ----------------------------------------- | ------------------- |
+| GET    | `/v1/families/:familyId/finance/analysis` | Bearer + membership |
+
+Derived trends/insights — see [modules/finance/intelligence/API.md](./modules/finance/intelligence/API.md).
+
+Do **not** implement email import / AI finance endpoints until Phase 2D+.

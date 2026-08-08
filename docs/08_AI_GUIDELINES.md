@@ -29,3 +29,13 @@ For financial email parsing:
 6. Store deterministic structured data separately from AI reasoning.
 
 Monthly AI reports should cite the underlying data and clearly distinguish facts from recommendations.
+
+## Finance fact pipeline (Phase 2C+)
+
+Future AI reports must consume **structured financial facts** from the deterministic intelligence layer (`GET …/finance/analysis`), not invent numbers:
+
+```text
+Ledger (2A) → Budgets (2B) → Analysis facts (2C) → AI explanation (later)
+```
+
+AI may narrate verified facts (totals, MoM %, top categories, budget status, recurring candidates). AI must not recalculate authoritative money figures.

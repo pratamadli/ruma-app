@@ -104,15 +104,16 @@ PII in logs should be minimized; prefer identifiers over emails in production lo
 
 ---
 
-## 9. Sensitive data handling (Finance Phase 2A–2B)
+## 9. Sensitive data handling (Finance Phase 2A–2C)
 
 - Finance is family-ACL bound (`FamilyMemberGuard`); cross-tenant → 404.
 - Store minimum fields; amounts as integer minor units (ADR-010/011).
-- Do **not** publish transaction or budget amounts into household Activity or Notifications.
-- Sentry `beforeSend` scrubs finance-related keys (amount, balance, account, transaction, budget, spent, …).
+- Intelligence is derived in-memory — do not persist insights that could leak via feeds.
+- Do **not** publish transaction, budget, or insight content into household Activity or Notifications.
+- Sentry `beforeSend` scrubs finance keys including `insight|trend|anomaly|recurring|analysis`.
 - Never send financial details to analytics.
 - Preserve `source` / `source_reference` for future imports; no PAN/CVV storage.
-- Phase 2B budget UI alerts only — no scheduled finance notification jobs.
+- No scheduled finance notification jobs in Phase 2C.
 - Consider stronger owner/admin rules later if household privacy needs tighten.
 
 ---

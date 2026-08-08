@@ -15,6 +15,7 @@ import {
   createFinancialAccountSchema,
   createTransactionCategorySchema,
   createTransactionSchema,
+  financeAnalysisQuerySchema,
   financeSummaryQuerySchema,
   getBudgetQuerySchema,
   listTransactionsQuerySchema,
@@ -29,6 +30,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { FamilyMemberGuard } from '../families/family-member.guard';
 import { BudgetService } from './budget.service';
 import { FinanceService } from './finance.service';
+import { IntelligenceService } from './intelligence/intelligence.service';
 
 @Controller('families/:familyId/finance')
 @UseGuards(FamilyMemberGuard)
@@ -36,6 +38,7 @@ export class FinanceController {
   constructor(
     private readonly finance: FinanceService,
     private readonly budgets: BudgetService,
+    private readonly intelligence: IntelligenceService,
   ) {}
 
   @Get('accounts')
@@ -169,5 +172,13 @@ export class FinanceController {
   @HttpCode(200)
   archiveBudget(@Param('familyId') familyId: string, @Param('budgetId') budgetId: string) {
     return this.budgets.archive(familyId, budgetId);
+  }
+
+  @Get('analysis')
+  getAnalysis(
+    @Param('familyId') familyId: string,
+    @Query(new ZodValidationPipe(financeAnalysisQuerySchema)) query: unknown,
+  ) {
+    return this.intelligence.getAnalysis(familyId, query as never);
   }
 }

@@ -4,7 +4,7 @@ import type { ApiEnv } from '@ruma/validation';
 let initialized = false;
 
 const SENSITIVE_KEY =
-  /password|passwd|secret|token|authorization|cookie|refresh|jwt|invite|reset|amount|balance|account|transfer|currency|description|finance|transaction|budget|spent|remaining/i;
+  /password|passwd|secret|token|authorization|cookie|refresh|jwt|invite|reset|amount|balance|account|transfer|currency|description|finance|transaction|budget|spent|remaining|insight|trend|anomaly|recurring|analysis/i;
 
 export function initSentry(env: ApiEnv): void {
   if (!env.SENTRY_DSN || initialized) return;

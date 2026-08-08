@@ -31,9 +31,17 @@ Approachable household money tracking — not accounting software.
 - Budgets page with month navigation + Finance overview summary
 - UI alerts only — no email/scheduled notification jobs
 
+## Phase 2C — Financial Intelligence (product version `2.2.0`)
+
+- Monthly spending / income / net trends
+- Month-over-month comparison
+- Top categories + share
+- Recurring pattern detection (heuristic, non-destructive)
+- Calm anomaly signals + deterministic insights
+- Finance Overview as the primary intelligence surface
+
 ### Later in Phase 2
 
-- **2C** Trends / recurring detection
 - **2D** Email import + AI categorization
 
 ## Phase 3 — Home Management

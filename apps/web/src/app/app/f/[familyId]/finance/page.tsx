@@ -9,8 +9,8 @@ import { AppShell } from '@/components/app-shell';
 import { BudgetProgressRow } from '@/components/budget-progress';
 import { FinanceSubnav } from '@/components/finance-subnav';
 import { useAuth } from '@/lib/auth-context';
-import { getFinanceSummary } from '@/lib/api';
-import { currentMonth, formatAccountType, formatIdr, monthLabel, shiftMonth } from '@/lib/money';
+import { getFinanceAnalysis } from '@/lib/api';
+import { currentMonth, formatIdr, formatPercent, monthLabel, shiftMonth } from '@/lib/money';
 
 export default function FinanceDashboardPage() {
   const params = useParams<{ familyId: string }>();
@@ -18,14 +18,15 @@ export default function FinanceDashboardPage() {
   const { accessToken } = useAuth();
   const [month, setMonth] = useState(currentMonth());
 
-  const summaryQuery = useQuery({
-    queryKey: ['finance-summary', familyId, month, accessToken],
+  const analysisQuery = useQuery({
+    queryKey: ['finance-analysis', familyId, month, accessToken],
     enabled: Boolean(accessToken && familyId),
-    queryFn: () => getFinanceSummary(accessToken!, familyId, month),
+    queryFn: () => getFinanceAnalysis(accessToken!, familyId, { month, months: 6 }),
   });
 
-  const summary = summaryQuery.data;
-  const budget = summary?.budget ?? null;
+  const analysis = analysisQuery.data;
+  const budget = analysis?.budget ?? null;
+  const expenseChange = analysis?.comparison.expenses;
 
   return (
     <AppShell familyId={familyId}>
@@ -35,7 +36,7 @@ export default function FinanceDashboardPage() {
             <div className="grid gap-1">
               <h1 className="m-0 text-3xl font-semibold tracking-tight">Finance</h1>
               <p className="m-0 text-[var(--ruma-color-ink-muted)]">
-                How is the household doing this month?
+                Understand where the household money went.
               </p>
             </div>
             <Link
@@ -67,12 +68,47 @@ export default function FinanceDashboardPage() {
           </div>
         </header>
 
-        {summaryQuery.isLoading ? (
+        {analysisQuery.isLoading ? (
           <p className="text-[var(--ruma-color-ink-muted)]">Loading finance…</p>
-        ) : summaryQuery.isError ? (
-          <p className="text-[var(--ruma-color-danger)]">Unable to load finance summary.</p>
-        ) : summary ? (
+        ) : analysisQuery.isError ? (
+          <p className="text-[var(--ruma-color-danger)]">Unable to load finance analysis.</p>
+        ) : analysis ? (
           <>
+            <section className="grid gap-1">
+              <h2 className="m-0 text-lg font-semibold">Cash flow</h2>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Income</p>
+                  <p className="m-0 text-2xl font-semibold tracking-tight">
+                    {formatIdr(analysis.summary.incomeMinor)}
+                  </p>
+                </div>
+                <div>
+                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Expenses</p>
+                  <p className="m-0 text-2xl font-semibold tracking-tight">
+                    {formatIdr(analysis.summary.expenseMinor)}
+                  </p>
+                  {expenseChange && analysis.monthsWithData >= 2 ? (
+                    <p className="m-0 mt-1 text-sm text-[var(--ruma-color-ink-muted)]">
+                      {expenseChange.percentageChange == null
+                        ? `Compared with ${monthLabel(analysis.comparison.previousMonth)}`
+                        : `${expenseChange.percentageChange > 0 ? '↑' : expenseChange.percentageChange < 0 ? '↓' : '→'} ${formatPercent(Math.abs(expenseChange.percentageChange))} vs ${monthLabel(analysis.comparison.previousMonth)}`}
+                    </p>
+                  ) : (
+                    <p className="m-0 mt-1 text-sm text-[var(--ruma-color-ink-muted)]">
+                      Keep adding months to unlock comparisons.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Net cash flow</p>
+                  <p className="m-0 text-2xl font-semibold tracking-tight">
+                    {formatIdr(analysis.summary.netCashFlowMinor)}
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {budget?.household ? (
               <section className="grid gap-2">
                 <div className="flex items-center justify-between gap-2">
@@ -92,33 +128,12 @@ export default function FinanceDashboardPage() {
                   percentage={budget.household.percentage}
                   status={budget.household.status}
                 />
-                {budget.items.length > 0 ? (
-                  <div className="mt-2 grid gap-3">
-                    {budget.items.slice(0, 4).map((item) => (
-                      <BudgetProgressRow
-                        key={item.id}
-                        title={item.categoryName}
-                        budgetMinor={item.budgetMinor}
-                        spentMinor={item.spentMinor}
-                        remainingMinor={item.remainingMinor}
-                        percentage={item.percentage}
-                        status={item.status}
-                        compact
-                      />
-                    ))}
-                  </div>
-                ) : null}
-                {budget.alerts.length > 0 ? (
-                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
-                    {budget.alerts[0]?.message}
-                  </p>
-                ) : null}
               </section>
             ) : (
               <Card>
                 <CardTitle>No budget for {monthLabel(month)}</CardTitle>
                 <CardDescription>
-                  Set a light spending plan so you can see what remains.
+                  Set a light spending plan so progress shows up here.
                 </CardDescription>
                 <div className="mt-3">
                   <Link
@@ -131,61 +146,51 @@ export default function FinanceDashboardPage() {
               </Card>
             )}
 
-            <section className="grid gap-1">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Income</p>
-                  <p className="m-0 text-2xl font-semibold tracking-tight">
-                    {formatIdr(summary.incomeMinor)}
-                  </p>
-                </div>
-                <div>
-                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Expenses</p>
-                  <p className="m-0 text-2xl font-semibold tracking-tight">
-                    {formatIdr(summary.expenseMinor)}
-                  </p>
-                </div>
-                <div>
-                  <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">Net cash flow</p>
-                  <p className="m-0 text-2xl font-semibold tracking-tight">
-                    {formatIdr(summary.netCashFlowMinor)}
-                  </p>
-                </div>
-              </div>
+            <section className="grid gap-3">
+              <h2 className="m-0 text-lg font-semibold">Where your money went</h2>
+              {analysis.topCategories.length === 0 ? (
+                <p className="m-0 text-[var(--ruma-color-ink-muted)]">No expenses this month.</p>
+              ) : (
+                <ul className="m-0 grid list-none gap-3 p-0">
+                  {analysis.topCategories.slice(0, 6).map((row) => (
+                    <li key={row.categoryId} className="grid gap-1">
+                      <div className="flex justify-between gap-3 text-sm">
+                        <span>{row.name}</span>
+                        <span className="tabular-nums text-[var(--ruma-color-ink-muted)]">
+                          {formatIdr(row.amountMinor)}
+                          {row.percentageOfExpenses != null
+                            ? ` · ${formatPercent(row.percentageOfExpenses)}`
+                            : ''}
+                        </span>
+                      </div>
+                      <div className="h-1 overflow-hidden rounded-full bg-black/[0.06]">
+                        <div
+                          className="h-full rounded-full bg-[var(--ruma-color-ink)]"
+                          style={{
+                            width: `${Math.min(row.percentageOfExpenses ?? 0, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             <section className="grid gap-3">
-              <h2 className="m-0 text-lg font-semibold">Accounts</h2>
-              {summary.accounts.length === 0 ? (
-                <Card>
-                  <CardTitle>No accounts yet</CardTitle>
-                  <CardDescription>
-                    Add BCA, cash, or an e-wallet to start tracking.
-                  </CardDescription>
-                  <div className="mt-3">
-                    <Link
-                      href={`/app/f/${familyId}/finance/accounts`}
-                      className="text-sm font-medium text-[var(--ruma-color-ink)]"
-                    >
-                      Add account
-                    </Link>
-                  </div>
-                </Card>
+              <h2 className="m-0 text-lg font-semibold">Things worth noticing</h2>
+              {analysis.insights.length === 0 ? (
+                <p className="m-0 text-[var(--ruma-color-ink-muted)]">Nothing unusual right now.</p>
               ) : (
                 <ul className="m-0 grid list-none gap-3 p-0">
-                  {summary.accounts.map((account) => (
+                  {analysis.insights.map((insight, index) => (
                     <li
-                      key={account.id}
-                      className="flex items-baseline justify-between gap-3 border-b border-[var(--ruma-color-border)] pb-3"
+                      key={`${insight.type}-${index}`}
+                      className="border-b border-[var(--ruma-color-border)] pb-3"
                     >
-                      <div>
-                        <p className="m-0 font-medium">{account.name}</p>
-                        <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
-                          {formatAccountType(account.type)}
-                        </p>
-                      </div>
-                      <p className="m-0 shrink-0 text-right font-medium tabular-nums">
-                        {formatIdr(account.balanceMinor)}
+                      <p className="m-0 font-medium">{insight.title}</p>
+                      <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
+                        {insight.description}
                       </p>
                     </li>
                   ))}
@@ -194,67 +199,70 @@ export default function FinanceDashboardPage() {
             </section>
 
             <section className="grid gap-3">
-              <h2 className="m-0 text-lg font-semibold">Spending</h2>
-              {summary.expensesByCategory.length === 0 ? (
-                <p className="m-0 text-[var(--ruma-color-ink-muted)]">No expenses this month.</p>
+              <h2 className="m-0 text-lg font-semibold">Spending trend</h2>
+              {analysis.monthsWithData < 2 ? (
+                <p className="m-0 text-[var(--ruma-color-ink-muted)]">
+                  Keep adding transactions to unlock spending trends.
+                </p>
               ) : (
                 <ul className="m-0 grid list-none gap-2 p-0">
-                  {summary.expensesByCategory.map((row) => (
-                    <li key={row.categoryId} className="flex justify-between gap-3 text-sm">
-                      <span>{row.name}</span>
-                      <span className="tabular-nums text-[var(--ruma-color-ink-muted)]">
-                        {formatIdr(row.amountMinor)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="grid gap-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="m-0 text-lg font-semibold">Recent</h2>
-                <Link
-                  href={`/app/f/${familyId}/finance/transactions`}
-                  className="text-sm text-[var(--ruma-color-ink-muted)]"
-                >
-                  See all
-                </Link>
-              </div>
-              {summary.recentTransactions.length === 0 ? (
-                <p className="m-0 text-[var(--ruma-color-ink-muted)]">No transactions yet.</p>
-              ) : (
-                <ul className="m-0 grid list-none gap-3 p-0">
-                  {summary.recentTransactions.map((txn) => {
-                    const sign = txn.type === 'INCOME' ? '+' : txn.type === 'EXPENSE' ? '−' : '→';
-                    const label =
-                      txn.description ||
-                      txn.category?.name ||
-                      (txn.type === 'TRANSFER'
-                        ? `${txn.account.name} → ${txn.transferAccount?.name ?? ''}`
-                        : txn.type);
+                  {analysis.trend.map((point) => {
+                    const max = analysis.trend.reduce(
+                      (acc, p) => (BigInt(p.expenseMinor) > acc ? BigInt(p.expenseMinor) : acc),
+                      0n,
+                    );
+                    const width =
+                      max === 0n ? 0 : Number((BigInt(point.expenseMinor) * 100n) / max);
                     return (
                       <li
-                        key={txn.id}
-                        className="flex items-baseline justify-between gap-3 border-b border-[var(--ruma-color-border)] pb-3"
+                        key={point.month}
+                        className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3 text-sm"
                       >
-                        <div className="min-w-0">
-                          <p className="m-0 truncate font-medium">{label}</p>
-                          <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
-                            {txn.transactionDate}
-                            {txn.category ? ` · ${txn.category.name}` : ''}
-                            {` · ${txn.account.name}`}
-                          </p>
+                        <span className="text-[var(--ruma-color-ink-muted)]">
+                          {monthLabel(point.month).split(' ')[0]}
+                        </span>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
+                          <div
+                            className="h-full rounded-full bg-[var(--ruma-color-ink)]/80"
+                            style={{ width: `${width}%` }}
+                          />
                         </div>
-                        <p className="m-0 shrink-0 tabular-nums">
-                          {sign} {formatIdr(txn.amountMinor)}
-                        </p>
+                        <span className="tabular-nums text-[var(--ruma-color-ink-muted)]">
+                          {formatIdr(point.expenseMinor)}
+                        </span>
                       </li>
                     );
                   })}
                 </ul>
               )}
             </section>
+
+            {analysis.recurring.length > 0 ? (
+              <section className="grid gap-3">
+                <h2 className="m-0 text-lg font-semibold">Likely recurring</h2>
+                <ul className="m-0 grid list-none gap-2 p-0">
+                  {analysis.recurring.slice(0, 5).map((pattern) => (
+                    <li
+                      key={`${pattern.label}-${pattern.categoryId}`}
+                      className="flex justify-between gap-3 text-sm"
+                    >
+                      <span>
+                        {pattern.label}
+                        {pattern.categoryName ? (
+                          <span className="text-[var(--ruma-color-ink-muted)]">
+                            {' '}
+                            · {pattern.categoryName}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="tabular-nums text-[var(--ruma-color-ink-muted)]">
+                        ~{formatIdr(pattern.typicalAmountMinor)}/mo
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>

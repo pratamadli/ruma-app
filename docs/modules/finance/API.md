@@ -22,6 +22,8 @@ Guards: JWT + `FamilyMemberGuard` (cross-tenant → 404)
 | GET    | `/budgets/:budgetId`           | Get one with progress                                                    |
 | PATCH  | `/budgets/:budgetId`           | Update total / items / status                                            |
 | DELETE | `/budgets/:budgetId`           | Archive                                                                  |
+| GET    | `/analysis`                    | Deterministic intelligence for a month                                   |
 
 Amounts are strings of integer minor units (`amountMinor`, `balanceMinor`, …).  
-Budget details: [budgeting/API.md](./budgeting/API.md).
+Budget details: [budgeting/API.md](./budgeting/API.md).  
+Intelligence: [intelligence/API.md](./intelligence/API.md).

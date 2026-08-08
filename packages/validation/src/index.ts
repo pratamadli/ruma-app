@@ -56,6 +56,7 @@ export {
   createBudgetSchema,
   updateBudgetSchema,
   getBudgetQuerySchema,
+  financeAnalysisQuerySchema,
   type CreateFinancialAccountInput,
   type UpdateFinancialAccountInput,
   type CreateTransactionCategoryInput,
@@ -67,4 +68,5 @@ export {
   type CreateBudgetInput,
   type UpdateBudgetInput,
   type GetBudgetQuery,
+  type FinanceAnalysisQuery,
 } from './finance';

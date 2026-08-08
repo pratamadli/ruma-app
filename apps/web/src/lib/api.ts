@@ -2,6 +2,7 @@ import type {
   AuthTokensResponse,
   BudgetMonthResponse,
   BudgetProgressResponse,
+  FinanceAnalysisResponse,
   FamilyActivityListResponse,
   FamilyEventListResponse,
   FamilyEventResponse,
@@ -614,6 +615,22 @@ export function archiveFinanceBudget(accessToken: string, familyId: string, budg
   return apiFetch<{ ok: boolean }>(
     `/families/${familyId}/finance/budgets/${budgetId}`,
     { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function getFinanceAnalysis(
+  accessToken: string,
+  familyId: string,
+  query: { month?: string; months?: number } = {},
+) {
+  const params = new URLSearchParams();
+  if (query.month) params.set('month', query.month);
+  if (query.months != null) params.set('months', String(query.months));
+  const qs = params.toString();
+  return apiFetch<FinanceAnalysisResponse>(
+    `/families/${familyId}/finance/analysis${qs ? `?${qs}` : ''}`,
+    {},
     { accessToken },
   );
 }

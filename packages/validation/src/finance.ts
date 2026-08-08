@@ -210,6 +210,15 @@ export const getBudgetQuerySchema = z.preprocess(
   }),
 );
 
+export const financeAnalysisQuerySchema = z.preprocess(
+  (value) => value ?? {},
+  z.object({
+    month: budgetPeriodMonthSchema.optional(),
+    /** Number of months in the trend window ending at `month` (inclusive). */
+    months: z.coerce.number().int().min(2).max(24).optional(),
+  }),
+);
+
 export type CreateFinancialAccountInput = z.infer<typeof createFinancialAccountSchema>;
 export type UpdateFinancialAccountInput = z.infer<typeof updateFinancialAccountSchema>;
 export type CreateTransactionCategoryInput = z.infer<typeof createTransactionCategorySchema>;
@@ -221,3 +230,4 @@ export type FinanceSummaryQuery = z.infer<typeof financeSummaryQuerySchema>;
 export type CreateBudgetInput = z.infer<typeof createBudgetSchema>;
 export type UpdateBudgetInput = z.infer<typeof updateBudgetSchema>;
 export type GetBudgetQuery = z.infer<typeof getBudgetQuerySchema>;
+export type FinanceAnalysisQuery = z.infer<typeof financeAnalysisQuerySchema>;
