@@ -2,6 +2,9 @@ import type {
   AuthTokensResponse,
   BudgetMonthResponse,
   BudgetProgressResponse,
+  ConfirmImportResponse,
+  EmailConnectionListResponse,
+  EmailConnectionResponse,
   FinanceAnalysisResponse,
   FamilyActivityListResponse,
   FamilyEventListResponse,
@@ -18,6 +21,9 @@ import type {
   GroceryListResponse,
   HealthResponse,
   HouseholdDashboardResponse,
+  ImportCandidateListResponse,
+  ImportCandidateResponse,
+  ImportSyncResultResponse,
   InvitationPreviewResponse,
   NotificationListResponse,
   TaskListResponse,
@@ -631,6 +637,116 @@ export function getFinanceAnalysis(
   return apiFetch<FinanceAnalysisResponse>(
     `/families/${familyId}/finance/analysis${qs ? `?${qs}` : ''}`,
     {},
+    { accessToken },
+  );
+}
+
+export function listEmailConnections(accessToken: string, familyId: string) {
+  return apiFetch<EmailConnectionListResponse>(
+    `/families/${familyId}/integrations/email`,
+    {},
+    { accessToken },
+  );
+}
+
+export function connectSyntheticEmail(accessToken: string, familyId: string) {
+  return apiFetch<EmailConnectionResponse>(
+    `/families/${familyId}/integrations/email/synthetic`,
+    { method: 'POST', body: JSON.stringify({}) },
+    { accessToken },
+  );
+}
+
+export function disconnectEmailConnection(
+  accessToken: string,
+  familyId: string,
+  connectionId: string,
+) {
+  return apiFetch<EmailConnectionResponse>(
+    `/families/${familyId}/integrations/email/${connectionId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function syncEmailImports(
+  accessToken: string,
+  familyId: string,
+  connectionId: string,
+  lookbackDays: 7 | 30 | 90,
+) {
+  return apiFetch<ImportSyncResultResponse>(
+    `/families/${familyId}/integrations/email/${connectionId}/sync`,
+    { method: 'POST', body: JSON.stringify({ lookbackDays }) },
+    { accessToken },
+  );
+}
+
+export function listFinanceImports(
+  accessToken: string,
+  familyId: string,
+  status?: 'PENDING_REVIEW' | 'CONFIRMED' | 'IGNORED' | 'FAILED',
+) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const qs = params.toString();
+  return apiFetch<ImportCandidateListResponse>(
+    `/families/${familyId}/finance/imports${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function updateFinanceImport(
+  accessToken: string,
+  familyId: string,
+  candidateId: string,
+  input: {
+    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor?: string;
+    currency?: string;
+    transactionDate?: string;
+    description?: string | null;
+    merchant?: string | null;
+    accountId?: string | null;
+    categoryId?: string | null;
+    transferAccountId?: string | null;
+    categoryHint?: string | null;
+  },
+) {
+  return apiFetch<ImportCandidateResponse>(
+    `/families/${familyId}/finance/imports/${candidateId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function confirmFinanceImport(
+  accessToken: string,
+  familyId: string,
+  candidateId: string,
+  input: {
+    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor?: string;
+    currency?: string;
+    transactionDate?: string;
+    description?: string | null;
+    accountId?: string;
+    categoryId?: string | null;
+    transferAccountId?: string;
+  } = {},
+) {
+  return apiFetch<ConfirmImportResponse>(
+    `/families/${familyId}/finance/imports/${candidateId}/confirm`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function ignoreFinanceImport(accessToken: string, familyId: string, candidateId: string) {
+  return apiFetch<ImportCandidateResponse>(
+    `/families/${familyId}/finance/imports/${candidateId}/ignore`,
+    { method: 'POST', body: JSON.stringify({}) },
     { accessToken },
   );
 }

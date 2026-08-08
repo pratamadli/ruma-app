@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const ulidLike = z.string().length(26);
 
-const currencyCodeSchema = z
+export const currencyCodeSchema = z
   .string()
   .trim()
   .length(3)

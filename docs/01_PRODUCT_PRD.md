@@ -40,9 +40,12 @@ Approachable household money tracking — not accounting software.
 - Calm anomaly signals + deterministic insights
 - Finance Overview as the primary intelligence surface
 
-### Later in Phase 2
+### Phase 2D — Automatic Transaction Capture (product version `2.3.0`)
 
-- **2D** Email import + AI categorization
+- Connect email (demo inbox / optional Gmail readonly)
+- Deterministic parse → review queue (confirm / edit / ignore)
+- Confirmed imports become normal ledger transactions
+- AI categorization deferred
 
 ## Phase 3 — Home Management
 

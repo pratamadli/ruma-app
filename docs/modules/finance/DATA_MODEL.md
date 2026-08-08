@@ -15,7 +15,7 @@ Family-scoped. Seeded defaults on first finance access. Prefer `isActive = false
 
 ### `Transaction`
 
-Normalized ledger row for manual entry today and imports later (`source`, `sourceReference`, `confidence`).
+Normalized ledger row for manual entry and confirmed imports (`source`, `sourceReference`, `confidence`).
 
 | Type     | `accountId`    | `transferAccountId` | `categoryId`     | Summary impact                      |
 | -------- | -------------- | ------------------- | ---------------- | ----------------------------------- |
@@ -36,3 +36,15 @@ PostgreSQL `BIGINT` / Prisma `BigInt`. API JSON strings. For IDR, 1 minor unit =
 ## Soft delete
 
 Transactions set `deletedAt`. Soft-deleted rows are excluded from balances and summaries.
+
+## Import entities (Phase 2D)
+
+### `EmailConnection`
+
+Family mailbox link (`SYNTHETIC` | `GMAIL`). OAuth tokens encrypted; never exposed via API.
+
+### `ImportCandidate`
+
+Parsed email awaiting review. Unique `(connectionId, providerMessageId)`. On confirm → `Transaction` with `source = IMPORT` and `sourceReference = candidate:<id>`.
+
+See [imports/](./imports/README.md).

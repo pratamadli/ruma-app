@@ -130,7 +130,8 @@ Home/Assets/Maintenance/Documents/Knowledge (Phase 3+), Finance budgets & automa
 Auth ──► User
 User ──► FamilyMembership ──► Family
 Family ◄── Tasks / Grocery / Calendar / Activity / Notifications
-Finance (Phase 2A) ──depends on──► Family
+Finance (Phase 2A–2D) ──depends on──► Family
+  EmailConnection → ImportCandidate → Transaction (confirm)
 Home / Assets / Maintenance / Documents / Knowledge (future) ──depend on──► Family
 AI (future) ──reads──► family-scoped domains; writes only proposal/candidate records
 ```

@@ -7,6 +7,7 @@ const links = [
   { suffix: '', label: 'Overview' },
   { suffix: '/budgets', label: 'Budgets' },
   { suffix: '/transactions', label: 'Transactions' },
+  { suffix: '/imports', label: 'Imports' },
   { suffix: '/accounts', label: 'Accounts' },
   { suffix: '/categories', label: 'Categories' },
 ] as const;

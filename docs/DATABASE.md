@@ -1,6 +1,7 @@
 # RUMA — Database Strategy
 
-**Status:** Accepted through Phase 2B Budgeting  
+**Status:** Accepted through Phase 2D Email Import
+
 **Engine:** PostgreSQL  
 **ORM:** Prisma  
 **Related:** `docs/05_DATABASE.md` (index), `SECURITY.md`, `DOMAIN_MODEL.md`
@@ -196,6 +197,7 @@ Migrations:
 - `20260808060000_recurrence_weekdays` (+ `20260808061000_…_columns`)
 - `20260808120000_phase2a_household_finance`
 - `20260808140000_phase2b_household_budgeting`
+- `20260809010000_phase2d_email_import`
 
 | Table                    | Purpose                                                           |
 | ------------------------ | ----------------------------------------------------------------- |
@@ -216,10 +218,12 @@ Migrations:
 | `transactions`           | Normalized ledger (income/expense/transfer), soft-delete          |
 | `budgets`                | Monthly plan (`period_month`, optional household ceiling)         |
 | `budget_items`           | Category envelopes linked to `transaction_categories`             |
+| `email_connections`      | Family mailbox connection (SYNTHETIC/GMAIL); encrypted tokens     |
+| `import_candidates`      | Parsed email candidates before ledger confirmation                |
 
 IDs are ULID (`CHAR(26)`), generated in application code.
 
-Date/time + recurrence rules: ADR-008. Money + transfers: ADR-010. Budgets: ADR-011.
+Date/time + recurrence rules: ADR-008. Money + transfers: ADR-010. Budgets: ADR-011. Imports: ADR-013.
 
 ---
 

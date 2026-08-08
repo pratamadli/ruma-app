@@ -70,3 +70,17 @@ export {
   type GetBudgetQuery,
   type FinanceAnalysisQuery,
 } from './finance';
+export {
+  connectSyntheticEmailSchema,
+  completeGmailOAuthSchema,
+  importSyncSchema,
+  listImportCandidatesQuerySchema,
+  updateImportCandidateSchema,
+  confirmImportCandidateSchema,
+  type ConnectSyntheticEmailInput,
+  type CompleteGmailOAuthInput,
+  type ImportSyncInput,
+  type ListImportCandidatesQuery,
+  type UpdateImportCandidateInput,
+  type ConfirmImportCandidateInput,
+} from './imports';

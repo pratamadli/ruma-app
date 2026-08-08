@@ -279,4 +279,11 @@ See [modules/finance/budgeting/API.md](./modules/finance/budgeting/API.md).
 
 Derived trends/insights — see [modules/finance/intelligence/API.md](./modules/finance/intelligence/API.md).
 
-Do **not** implement email import / AI finance endpoints until Phase 2D+.
+### Email import (Phase 2D)
+
+| Method          | Path                                         | Auth                                                  |
+| --------------- | -------------------------------------------- | ----------------------------------------------------- |
+| GET/POST/DELETE | `/v1/families/:familyId/integrations/email…` | Bearer + membership (connect/disconnect: OWNER/ADMIN) |
+| GET/PATCH/POST  | `/v1/families/:familyId/finance/imports…`    | Bearer + membership                                   |
+
+See [modules/finance/imports/API.md](./modules/finance/imports/API.md). AI finance report endpoints remain deferred.

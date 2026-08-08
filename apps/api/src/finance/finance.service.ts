@@ -220,6 +220,22 @@ export class FinanceService {
     actorId: string,
     input: CreateTransactionInput,
   ): Promise<TransactionResponse> {
+    return this.createLedgerTransaction(familyId, actorId, input, {
+      source: 'MANUAL',
+      sourceReference: null,
+    });
+  }
+
+  /**
+   * Shared ledger write for manual + confirmed imports (ADR-013).
+   * Imported rows must still pass the same validation rules.
+   */
+  async createLedgerTransaction(
+    familyId: string,
+    actorId: string,
+    input: CreateTransactionInput,
+    meta: { source: 'MANUAL' | 'IMPORT'; sourceReference: string | null },
+  ): Promise<TransactionResponse> {
     const family = await this.requireFamily(familyId);
     await this.ensureDefaultCategories(familyId);
 
@@ -257,7 +273,8 @@ export class FinanceService {
         categoryId,
         description: input.description?.trim() || null,
         transactionDate: parseDateOnly(input.transactionDate),
-        source: 'MANUAL',
+        source: meta.source,
+        sourceReference: meta.sourceReference,
         createdById: actorId,
       },
       include: {
@@ -653,6 +670,7 @@ export class FinanceService {
       description: txn.description,
       transactionDate: formatDateOnly(txn.transactionDate),
       source: txn.source,
+      sourceReference: txn.sourceReference ?? null,
       createdBy: {
         id: txn.createdBy.id,
         name: txn.createdBy.name,

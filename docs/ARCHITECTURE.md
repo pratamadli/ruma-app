@@ -1,6 +1,6 @@
 # RUMA — Architecture
 
-**Status:** Accepted through Phase 2C Financial Intelligence  
+**Status:** Accepted through Phase 2D Email Import
 **Supersedes detailed implementation guidance in:** `docs/04_ARCHITECTURE.md` (index remains)  
 **Related ADRs:** `docs/adr/`
 

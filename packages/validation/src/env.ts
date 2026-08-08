@@ -36,6 +36,15 @@ export const apiEnvSchema = z.object({
     .int()
     .positive()
     .default(60 * 60),
+  /** Optional Gmail OAuth for Phase 2D email import. */
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_OAUTH_REDIRECT_URL: z.string().url().optional(),
+  /** 32-byte hex key for encrypting OAuth tokens at rest. */
+  EMAIL_TOKEN_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, 'EMAIL_TOKEN_ENCRYPTION_KEY must be 64 hex chars')
+    .optional(),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 let initialized = false;
 
 const SENSITIVE_KEY =
-  /password|passwd|secret|token|authorization|cookie|refresh|jwt|invite|reset|amount|balance|account|transfer|currency|description|finance|transaction|budget|spent|remaining|insight|trend|anomaly|recurring|analysis/i;
+  /password|passwd|secret|token|authorization|cookie|refresh|jwt|invite|reset|amount|balance|account|transfer|currency|description|finance|transaction|budget|spent|remaining|insight|trend|anomaly|recurring|analysis|email|message|body|merchant|reference|candidate|import|gmail|oauth/i;
 
 export function initWebSentry(): void {
   if (initialized || typeof window === 'undefined') return;

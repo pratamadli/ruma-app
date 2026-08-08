@@ -1,6 +1,6 @@
 # RUMA Roadmap
 
-**Product version:** `2.2.0` (see root / `apps/web` / `apps/api` `package.json`)
+**Product version:** `2.3.0` (see root / `apps/web` / `apps/api` `package.json`)
 
 ## Phase 0 — Foundation
 
@@ -34,9 +34,9 @@ See [ADR-009](./adr/009-phase01-deferred-engineering.md):
 
 ## Phase 2 — Household Finance
 
-**Status: Phase 2A–2C COMPLETE** (`2.0.0` / `2.1.0` / `2.2.0`)
+**Status: Phase 2A–2D COMPLETE** (`2.0.0` / `2.1.0` / `2.2.0` / `2.3.0`)
 
-Financial source of truth for the household. Sensitive domain — family-scoped, no leakage into generic activity/notifications. See [ADR-010](./adr/010-household-finance-phase2a.md), [ADR-011](./adr/011-household-budgeting-phase2b.md), [ADR-012](./adr/012-financial-intelligence-phase2c.md), and [modules/finance](./modules/finance/README.md).
+Financial source of truth for the household. Sensitive domain — family-scoped, no leakage into generic activity/notifications. See [ADR-010](./adr/010-household-finance-phase2a.md), [ADR-011](./adr/011-household-budgeting-phase2b.md), [ADR-012](./adr/012-financial-intelligence-phase2c.md), [ADR-013](./adr/013-email-transaction-import-phase2d.md), and [modules/finance](./modules/finance/README.md).
 
 ### Phase 2A — Manual Finance Foundation (COMPLETE · `2.0.0`)
 
@@ -56,9 +56,12 @@ Financial source of truth for the household. Sensitive domain — family-scoped,
 - Deterministic insights (max 5) via `GET …/finance/analysis`
 - Finance Overview as intelligence surface (no AI)
 
-### Phase 2D — Automatic Transaction Capture (later)
+### Phase 2D — Automatic Transaction Capture (COMPLETE · `2.3.0`)
 
-- Email ingestion, parser, AI categorization, confirmation workflow
+- Email provider abstraction (SYNTHETIC + optional Gmail)
+- Deterministic parsers → `ImportCandidate` review queue
+- Confirm / edit / ignore → same `Transaction` ledger (`source = IMPORT`)
+- Manual bounded sync; no auto-confirm; no AI parsing yet
 
 ## Phase 3 — Home Management
 

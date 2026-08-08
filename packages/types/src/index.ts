@@ -286,6 +286,8 @@ export type TransactionResponse = {
   description: string | null;
   transactionDate: string;
   source: TransactionSource;
+  /** e.g. `candidate:<id>` for email imports; never includes email bodies. */
+  sourceReference: string | null;
   createdBy: TaskMemberRef;
   createdAt: string;
   updatedAt: string;
@@ -457,4 +459,84 @@ export type FinanceAnalysisResponse = {
   recurring: RecurringPatternResponse[];
   anomalies: FinanceAnomalyResponse[];
   insights: FinanceInsightResponse[];
+};
+
+export type EmailProviderKind = 'SYNTHETIC' | 'GMAIL';
+export type EmailConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
+export type ImportCandidateStatus = 'PENDING_REVIEW' | 'CONFIRMED' | 'IGNORED' | 'FAILED';
+export type ImportConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type EmailConnectionResponse = {
+  id: string;
+  familyId: string;
+  provider: EmailProviderKind | string;
+  status: EmailConnectionStatus | string;
+  emailAddress: string;
+  scopes: string | null;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  connectedById: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EmailConnectionListResponse = {
+  connections: EmailConnectionResponse[];
+  gmailConfigured: boolean;
+};
+
+export type ImportCandidateResponse = {
+  id: string;
+  familyId: string;
+  connectionId: string;
+  providerMessageId: string;
+  parserProvider: string;
+  status: ImportCandidateStatus | string;
+  confidence: ImportConfidence | string;
+  transactionType: TransactionType | null;
+  amountMinor: MoneyMinorString | null;
+  currency: string | null;
+  transactionDate: string | null;
+  description: string | null;
+  merchant: string | null;
+  reference: string | null;
+  accountHint: string | null;
+  categoryHint: string | null;
+  suggestedAccountId: string | null;
+  suggestedCategoryId: string | null;
+  suggestedTransferAccountId: string | null;
+  possibleDuplicateTransactionId: string | null;
+  confirmedTransactionId: string | null;
+  parseError: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ImportHistoryCounts = {
+  pendingReview: number;
+  confirmed: number;
+  ignored: number;
+  failed: number;
+};
+
+export type ImportCandidateListResponse = {
+  candidates: ImportCandidateResponse[];
+  history: ImportHistoryCounts;
+};
+
+export type ImportSyncResultResponse = {
+  connectionId: string;
+  lookbackDays: number;
+  messagesScanned: number;
+  candidatesCreated: number;
+  alreadyProcessed: number;
+  parseFailures: number;
+  skippedUnknown: number;
+};
+
+export type ConfirmImportResponse = {
+  candidate: ImportCandidateResponse;
+  transaction: TransactionResponse;
 };

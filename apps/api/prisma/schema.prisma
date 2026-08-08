@@ -79,6 +79,30 @@ enum BudgetRecordStatus {
   ARCHIVED
 }
 
+enum EmailProviderKind {
+  SYNTHETIC
+  GMAIL
+}
+
+enum EmailConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum ImportCandidateStatus {
+  PENDING_REVIEW
+  CONFIRMED
+  IGNORED
+  FAILED
+}
+
+enum ImportConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
 model User {
   id           String   @id @db.Char(26)
   email        String   @unique
@@ -103,6 +127,8 @@ model User {
   createdFinancialAccounts FinancialAccount[] @relation("FinancialAccountCreator")
   createdTransactions      Transaction[]      @relation("TransactionCreator")
   createdBudgets           Budget[]           @relation("BudgetCreator")
+  emailConnections         EmailConnection[]  @relation("EmailConnectionOwner")
+  reviewedImportCandidates ImportCandidate[]  @relation("ImportCandidateReviewer")
 
   @@map("users")
 }
@@ -128,6 +154,8 @@ model Family {
   transactionCategories  TransactionCategory[]
   transactions          Transaction[]
   budgets               Budget[]
+  emailConnections      EmailConnection[]
+  importCandidates      ImportCandidate[]
 
   @@map("families")
 }
@@ -442,4 +470,71 @@ model BudgetItem {
   @@unique([budgetId, categoryId])
   @@index([categoryId])
   @@map("budget_items")
+}
+
+/// Family-scoped mailbox connection (Gmail OAuth or SYNTHETIC demo).
+model EmailConnection {
+  id                    String                @id @db.Char(26)
+  familyId              String                @map("family_id") @db.Char(26)
+  provider              EmailProviderKind
+  status                EmailConnectionStatus @default(CONNECTED)
+  emailAddress          String                @map("email_address")
+  /// AES-GCM ciphertext (base64); null for SYNTHETIC.
+  accessTokenEncrypted  String?               @map("access_token_encrypted")
+  refreshTokenEncrypted String?               @map("refresh_token_encrypted")
+  tokenExpiresAt        DateTime?             @map("token_expires_at") @db.Timestamptz(6)
+  scopes                String?
+  connectedById         String                @map("connected_by_id") @db.Char(26)
+  lastSyncedAt          DateTime?             @map("last_synced_at") @db.Timestamptz(6)
+  lastError             String?               @map("last_error")
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family      Family           @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  connectedBy User             @relation("EmailConnectionOwner", fields: [connectedById], references: [id], onDelete: Restrict)
+  candidates  ImportCandidate[]
+
+  @@unique([familyId, provider, emailAddress])
+  @@index([familyId, status])
+  @@map("email_connections")
+}
+
+/// Parsed email awaiting confirm/ignore before becoming a Transaction.
+model ImportCandidate {
+  id                           String                @id @db.Char(26)
+  familyId                     String                @map("family_id") @db.Char(26)
+  connectionId                 String                @map("connection_id") @db.Char(26)
+  providerMessageId            String                @map("provider_message_id")
+  parserProvider               String                @map("parser_provider")
+  status                       ImportCandidateStatus @default(PENDING_REVIEW)
+  confidence                   ImportConfidence      @default(MEDIUM)
+  transactionType              TransactionType?      @map("transaction_type")
+  amountMinor                  BigInt?               @map("amount_minor")
+  currency                     String?               @db.Char(3)
+  transactionDate              DateTime?             @map("transaction_date") @db.Date
+  description                  String?
+  merchant                     String?
+  reference                    String?
+  accountHint                  String?               @map("account_hint")
+  categoryHint                 String?               @map("category_hint")
+  suggestedAccountId           String?               @map("suggested_account_id") @db.Char(26)
+  suggestedCategoryId          String?               @map("suggested_category_id") @db.Char(26)
+  suggestedTransferAccountId   String?               @map("suggested_transfer_account_id") @db.Char(26)
+  fingerprint                  String?
+  possibleDuplicateTransactionId String?             @map("possible_duplicate_transaction_id") @db.Char(26)
+  confirmedTransactionId       String?               @map("confirmed_transaction_id") @db.Char(26)
+  parseError                   String?               @map("parse_error")
+  reviewedById                 String?               @map("reviewed_by_id") @db.Char(26)
+  reviewedAt                   DateTime?             @map("reviewed_at") @db.Timestamptz(6)
+  createdAt                    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family     Family          @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  connection EmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  reviewedBy User?           @relation("ImportCandidateReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, providerMessageId])
+  @@index([familyId, status, createdAt(sort: Desc)])
+  @@index([familyId, fingerprint])
+  @@map("import_candidates")
 }
