@@ -19,16 +19,17 @@
 
 ## Phase 0 engineering (canonical)
 
-| Doc                                                    | Purpose                       |
-| ------------------------------------------------------ | ----------------------------- |
-| [PROJECT_BRAIN_AUDIT.md](./PROJECT_BRAIN_AUDIT.md)     | Audit before foundation       |
-| [DOMAIN_MODEL.md](./DOMAIN_MODEL.md)                   | Domains & ownership           |
-| [ARCHITECTURE.md](./ARCHITECTURE.md)                   | System architecture           |
-| [DATABASE.md](./DATABASE.md)                           | DB strategy                   |
-| [API_ARCHITECTURE.md](./API_ARCHITECTURE.md)           | NestJS API architecture       |
-| [FRONTEND_ARCHITECTURE.md](./FRONTEND_ARCHITECTURE.md) | Next.js architecture          |
-| [SECURITY.md](./SECURITY.md)                           | Security foundation           |
-| [TESTING_STRATEGY.md](./TESTING_STRATEGY.md)           | Testing strategy              |
-| [DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)   | DX / CI                       |
-| [OBSERVABILITY.md](./OBSERVABILITY.md)                 | Minimal observability         |
-| [adr/](./adr/)                                         | Architecture Decision Records |
+| Doc                                                    | Purpose                              |
+| ------------------------------------------------------ | ------------------------------------ |
+| [PROJECT_BRAIN_AUDIT.md](./PROJECT_BRAIN_AUDIT.md)     | Audit before foundation              |
+| [DOMAIN_MODEL.md](./DOMAIN_MODEL.md)                   | Domains & ownership                  |
+| [ARCHITECTURE.md](./ARCHITECTURE.md)                   | System architecture                  |
+| [DATABASE.md](./DATABASE.md)                           | DB strategy                          |
+| [API_ARCHITECTURE.md](./API_ARCHITECTURE.md)           | NestJS API architecture              |
+| [FRONTEND_ARCHITECTURE.md](./FRONTEND_ARCHITECTURE.md) | Next.js architecture                 |
+| [SECURITY.md](./SECURITY.md)                           | Security foundation                  |
+| [TESTING_STRATEGY.md](./TESTING_STRATEGY.md)           | Testing strategy                     |
+| [DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)   | DX / CI                              |
+| [DEPLOYMENT.md](./DEPLOYMENT.md)                       | Production deploy (Vercel + Railway) |
+| [OBSERVABILITY.md](./OBSERVABILITY.md)                 | Minimal observability                |
+| [adr/](./adr/)                                         | Architecture Decision Records        |

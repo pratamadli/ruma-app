@@ -101,6 +101,8 @@ Roles: `OWNER`, `ADMIN`, `MEMBER`. Cross-family reads → 404.
 
 See [`docs/README.md`](./docs/README.md) and ADRs in [`docs/adr/`](./docs/adr/).
 
+Production deploy (Vercel web + Railway API/Postgres, no Docker): [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+
 ---
 
 ## Phase 0 principles

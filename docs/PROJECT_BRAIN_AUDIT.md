@@ -118,8 +118,8 @@ These were not decided with enough rigor to implement safely:
 Frontend: Next.js, React, TypeScript, Tailwind CSS, shadcn/ui  
 State/data: Redux Toolkit, TanStack Query, React Hook Form, Zod  
 Backend: NestJS, Prisma  
-Database: PostgreSQL (Supabase initially)  
-Infra: Vercel, Railway/Render, Supabase Storage, Resend, Sentry, PostHog  
+Database: PostgreSQL (Railway Postgres in production; native local install — no Docker in-repo)  
+Infra: Vercel (web), Railway (API + Postgres), Resend, Sentry, PostHog; object storage TBD  
 Monorepo: pnpm, Turborepo
 
 ### Evaluations
@@ -151,13 +151,13 @@ Monorepo: pnpm, Turborepo
 5. **Recommendation:** **Keep NestJS + Prisma + PostgreSQL.**
 6. **Impact of changing ORM later:** High migration cost; do not churn without a concrete Prisma blocker.
 
-#### 3.4 Supabase as managed Postgres (+ later storage)
+#### 3.4 Managed Postgres (+ later storage)
 
-1. **Current decision:** PostgreSQL via Supabase (low-cost).
-2. **Problem:** Temptation to also adopt Supabase Auth/RLS as the primary app security model, splitting authority with NestJS.
-3. **Alternative:** Neon, Railway Postgres, or local Postgres only.
-4. **Trade-offs:** Supabase is cost-effective and includes storage; Neon is excellent Postgres-only DX. Either is fine if NestJS remains the authorization authority.
-5. **Recommendation:** **Keep Supabase (or equivalent managed Postgres) for data/storage. Do not make Supabase Auth the system of record for RUMA authorization.**
+1. **Current decision:** PostgreSQL on **Railway Postgres** in production (same project as the API). Local: native Postgres. No Docker in this repo for app/DB runtime.
+2. **Problem:** Managed providers that also offer Auth/RLS (e.g. Supabase) tempt a split-brain with NestJS authorization.
+3. **Alternative:** Neon, Supabase (Postgres-only), Render Postgres — all fine if Nest remains the authz authority.
+4. **Trade-offs:** Railway keeps API + DB colocated and simple for early prod; swapping providers later is low cost if access stays through Prisma.
+5. **Recommendation:** **Use Railway Postgres for production. Do not make any provider’s Auth/RLS the system of record for RUMA authorization.** Object storage provider TBD when needed.
 6. **Impact of changing provider:** Low if access is only through Prisma and portable SQL.
 
 #### 3.5 shadcn/ui + Tailwind

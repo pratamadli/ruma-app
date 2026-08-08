@@ -104,7 +104,8 @@ Install → Typecheck → Lint → Test → Build
 ### Deployment (initial)
 
 - Web → Vercel (on main or explicit promote).
-- API → Railway/Render (on main or explicit promote).
+- API + production Postgres → Railway (on main or explicit promote).
+- No Docker in this repo for app or local DB; see `docs/DEPLOYMENT.md`.
 - Do not build complex multi-stage deploy orchestration in Phase 0.
 
 ---

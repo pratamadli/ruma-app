@@ -1,12 +1,14 @@
 # RUMA — Production deployment
 
-Deploy order: **Postgres → API → Web**. No Docker.
+Deploy order: **Postgres → API → Web**.
 
-| Piece      | Host                                    | Config in repo                   |
-| ---------- | --------------------------------------- | -------------------------------- |
-| PostgreSQL | [Neon](https://neon.tech) (or Supabase) | —                                |
-| `apps/api` | [Railway](https://railway.app)          | `railway.toml` (Nixpacks / pnpm) |
-| `apps/web` | [Vercel](https://vercel.com)            | `apps/web/vercel.json`           |
+No Docker in this repo. Local Postgres is a native install (e.g. Homebrew). Production uses managed Postgres on Railway.
+
+| Piece      | Host                                           | Config in repo                   |
+| ---------- | ---------------------------------------------- | -------------------------------- |
+| PostgreSQL | [Railway](https://railway.app) Postgres plugin | —                                |
+| `apps/api` | [Railway](https://railway.app) (same project)  | `railway.toml` (Nixpacks / pnpm) |
+| `apps/web` | [Vercel](https://vercel.com)                   | `apps/web/vercel.json`           |
 
 ---
 
@@ -16,38 +18,33 @@ Deploy order: **Postgres → API → Web**. No Docker.
 
 Commit and push deploy prep to `main` before connecting hosts to GitHub.
 
-### B. Database (Neon — ~2 min)
+### B. Database + API (Railway — ~10 min)
 
-1. Create project at [neon.tech](https://console.neon.tech).
-2. Copy the connection string (use the one with `sslmode=require`).
-3. Keep it for the API env as `DATABASE_URL`.
-
-Migrations run automatically on API start (`prisma migrate deploy` in `start:prod`).
-
-### C. API (Railway — ~5 min)
-
-1. New project → **Deploy from GitHub** → `pratamadli/ruma-app`.
+1. Create a project at [railway.app](https://railway.app) → **Deploy from GitHub** → `pratamadli/ruma-app`.
 2. Root directory: **repository root** (so pnpm workspace + `railway.toml` apply).
-3. Variables:
+3. In the same project: **New** → **Database** → **Add PostgreSQL**.
+4. On the **API service**, Variables → add / reference:
 
-| Variable             | Example / notes                                   |
-| -------------------- | ------------------------------------------------- |
-| `NODE_ENV`           | `production`                                      |
-| `DATABASE_URL`       | Neon URL                                          |
-| `JWT_ACCESS_SECRET`  | `openssl rand -base64 48`                         |
-| `JWT_REFRESH_SECRET` | another `openssl rand -base64 48`                 |
-| `CORS_ORIGINS`       | leave placeholder, update after Vercel URL exists |
-| `APP_URL`            | leave placeholder, update after Vercel            |
-| `EMAIL_FROM`         | `RUMA <onboarding@resend.dev>`                    |
-| `RESEND_API_KEY`     | optional                                          |
+| Variable             | Value / notes                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`           | `production`                                                                                                                      |
+| `DATABASE_URL`       | From Postgres plugin → **Connect** / variable reference `${{Postgres.DATABASE_URL}}` (Railway UI may use the plugin service name) |
+| `JWT_ACCESS_SECRET`  | `openssl rand -base64 48`                                                                                                         |
+| `JWT_REFRESH_SECRET` | another `openssl rand -base64 48`                                                                                                 |
+| `CORS_ORIGINS`       | placeholder until Vercel URL exists (e.g. `https://example.com`)                                                                  |
+| `APP_URL`            | same placeholder                                                                                                                  |
+| `EMAIL_FROM`         | `RUMA <onboarding@resend.dev>`                                                                                                    |
+| `RESEND_API_KEY`     | optional                                                                                                                          |
 
-4. Generate a public domain (Railway → Settings → Networking → Generate domain).
-5. Smoke: `https://<api>.up.railway.app/v1/health`
+5. Generate a public domain for the API (Settings → Networking → Generate domain).
+6. Smoke: `https://<api>.up.railway.app/v1/health`
 
-### D. Web (Vercel — ~5 min)
+Migrations run on API start (`prisma migrate deploy` in `start:prod`).
+
+### C. Web (Vercel — ~5 min)
 
 1. [vercel.com/new](https://vercel.com/new) → import `pratamadli/ruma-app`.
-2. **Root Directory:** `apps/web` (Important).
+2. **Root Directory:** `apps/web`.
 3. Env:
 
 | Variable              | Value                             |
@@ -56,16 +53,16 @@ Migrations run automatically on API start (`prisma migrate deploy` in `start:pro
 
 4. Deploy → copy production URL (e.g. `https://ruma-xxx.vercel.app`).
 
-### E. Wire origins
+### D. Wire origins
 
-On Railway, set and redeploy:
+On the Railway API service, set and redeploy:
 
 | Variable       | Value                         |
 | -------------- | ----------------------------- |
 | `CORS_ORIGINS` | `https://ruma-xxx.vercel.app` |
 | `APP_URL`      | `https://ruma-xxx.vercel.app` |
 
-### F. Smoke
+### E. Smoke
 
 - [ ] Landing loads on Vercel
 - [ ] Sign up / sign in
@@ -92,6 +89,7 @@ Production refresh cookie uses `SameSite=None; Secure` so credentialed requests 
 
 ## What not to do
 
+- Do not add Dockerfiles or docker-compose for app/runtime in this repo.
 - Do not deploy Nest as a Vercel serverless function (not configured).
 - Do not leave `NEXT_PUBLIC_API_URL` as localhost on Vercel.
 - Do not forget to update `CORS_ORIGINS` after the first Vercel URL.

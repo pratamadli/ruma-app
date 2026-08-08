@@ -10,12 +10,13 @@
 ## 1. Principles
 
 1. PostgreSQL is the business-data source of truth.
-2. Family is the root tenant/workspace for household data.
-3. Normalize by default; denormalize only with a measured reason.
-4. Schema changes ship through Prisma migrations only.
-5. Protect tenant isolation at every data-access boundary (not only in the UI).
-6. Do not design every future table now — only conventions + MVP foundation.
-7. Financial and other sensitive records (when introduced) must retain an auditable source.
+2. Production hosts Postgres on Railway; local development uses a native Postgres install (no Docker in this repo). See `DEPLOYMENT.md`.
+3. Family is the root tenant/workspace for household data.
+4. Normalize by default; denormalize only with a measured reason.
+5. Schema changes ship through Prisma migrations only.
+6. Protect tenant isolation at every data-access boundary (not only in the UI).
+7. Do not design every future table now — only conventions + MVP foundation.
+8. Financial and other sensitive records (when introduced) must retain an auditable source.
 
 ---
 

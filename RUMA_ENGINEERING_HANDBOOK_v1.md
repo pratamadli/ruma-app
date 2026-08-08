@@ -104,13 +104,13 @@ Backend:
 
 Database:
 
-- PostgreSQL (Supabase)
+- PostgreSQL (Railway Postgres in production; native local install)
 
 Deployment:
 
-- Vercel
-- Railway/Render
-- Supabase Storage
+- Vercel (web)
+- Railway (API + Postgres)
+- Object storage later when needed
 
 Email:
 

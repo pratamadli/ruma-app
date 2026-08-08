@@ -19,13 +19,16 @@
 
 ## Database
 
-- PostgreSQL, initially using a free/low-cost managed provider such as Supabase.
+- PostgreSQL via Prisma.
+- Local: native PostgreSQL install (e.g. Homebrew). No Docker in this repo.
+- Production: Railway Postgres (same Railway project as the API).
 
 ## Infrastructure
 
-- Vercel for web
-- Railway/Render or equivalent for API when needed
-- Supabase Storage when needed
+- Vercel for web (`apps/web`)
+- Railway for API (`apps/api`) and production Postgres
+- Object storage later when needed (provider TBD; Nest remains authorization authority)
+- See `docs/DEPLOYMENT.md`
 
 ## Email
 
