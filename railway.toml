@@ -1,12 +1,13 @@
-# Railway service for apps/api — Nixpacks (Node/pnpm), no containers in-repo.
-# See nixpacks.toml: Node 22 + pnpm 10 (Corepack/pnpm 11 is broken on Railway).
+# Railway service for apps/api — Nixpacks (no Docker in-repo).
+# pnpm is invoked via npx so Corepack shims are never required.
 [build]
 builder = "NIXPACKS"
 nixpacksConfigPath = "nixpacks.toml"
-buildCommand = "pnpm turbo run build --filter=@ruma/api..."
+buildCommand = "npx --yes pnpm@10.33.4 turbo run build --filter=@ruma/api..."
 
 [deploy]
-startCommand = "pnpm --filter @ruma/api start:prod"
+preDeployCommand = "npx --yes pnpm@10.33.4 --filter @ruma/api exec prisma migrate deploy"
+startCommand = "node apps/api/dist/main.js"
 healthcheckPath = "/v1/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

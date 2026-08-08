@@ -4,7 +4,7 @@ Deploy order: **Postgres → API → Web**.
 
 No Docker in this repo. Local Postgres is a native install (e.g. Homebrew). Production uses managed Postgres on Railway.
 
-**Node / pnpm:** production uses **Node 22** + **pnpm 10.33.4** (see `.nvmrc`, `nixpacks.toml`, `packageManager`). Corepack + pnpm 11 fails on Railway with `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`.
+**Node / pnpm:** production uses **Node 22** + **pnpm 10.33.4** via `npx` (see `.nvmrc`, `nixpacks.toml`, `packageManager`). Do not rely on Corepack on Railway — pnpm 11 crashes (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`), and global `pnpm` is often missing from PATH across Nixpacks layers.
 
 | Piece      | Host                                           | Config in repo                   |
 | ---------- | ---------------------------------------------- | -------------------------------- |
