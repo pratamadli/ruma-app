@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createId } from '../common/ids';
 import { ActivityService } from './activity.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { loadApiEnv } from '../config/env';
 import { normalizeEmail } from '@ruma/validation';
 
@@ -28,6 +29,7 @@ export class InvitationsService {
     private readonly prisma: PrismaService,
     private readonly activity: ActivityService,
     private readonly email: EmailService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(
@@ -265,6 +267,25 @@ export class InvitationsService {
           actorName: user.name ?? user.email,
           role: invitation.role,
         },
+        tx,
+      );
+
+      const ownersAndAdmins = await tx.familyMembership.findMany({
+        where: {
+          familyId: invitation.familyId,
+          status: 'ACTIVE',
+          role: { in: ['OWNER', 'ADMIN'] },
+          userId: { not: userId },
+        },
+        select: { userId: true },
+      });
+      await this.notifications.notifyMany(
+        invitation.familyId,
+        ownersAndAdmins.map((m) => m.userId),
+        'MEMBER_JOINED',
+        'New family member',
+        `${user.name ?? user.email} joined`,
+        { userId, familyId: invitation.familyId },
         tx,
       );
 

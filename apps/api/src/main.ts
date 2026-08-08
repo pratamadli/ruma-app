@@ -5,14 +5,20 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { loadApiEnv } from './config/env';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { JsonLogger } from './common/logging/json-logger';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware';
+import { initSentry } from './observability/sentry';
 
 async function bootstrap() {
   const env = loadApiEnv();
+  initSentry(env);
+
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log'],
+    logger: env.NODE_ENV === 'production' ? new JsonLogger() : ['error', 'warn', 'log'],
   });
 
   app.setGlobalPrefix('v1');
+  app.use(requestIdMiddleware);
   app.use(cookieParser());
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({

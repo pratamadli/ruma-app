@@ -1,4 +1,4 @@
-// RUMA schema — Phase 0 foundation + Phase 1 Family Workspace
+// RUMA schema — Phase 0–1 (Family Workspace + household collaboration)
 // Canonical conventions: docs/DATABASE.md
 
 generator client {
@@ -29,6 +29,25 @@ enum InvitationStatus {
   REVOKED
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskRecurrence {
+  NONE
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 model User {
   id           String   @id @db.Char(26)
   email        String   @unique
@@ -37,11 +56,18 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  memberships         FamilyMembership[]
-  refreshTokens       RefreshToken[]
-  sentInvitations     FamilyInvitation[] @relation("InvitationInviter")
-  acceptedInvitations FamilyInvitation[] @relation("InvitationAcceptor")
-  activities          FamilyActivity[]
+  memberships          FamilyMembership[]
+  refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
+  sentInvitations      FamilyInvitation[] @relation("InvitationInviter")
+  acceptedInvitations  FamilyInvitation[] @relation("InvitationAcceptor")
+  activities           FamilyActivity[]
+  createdTasks         Task[]             @relation("TaskCreator")
+  assignedTasks        Task[]             @relation("TaskAssignee")
+  createdGroceryLists  GroceryList[]
+  assignedGroceryItems GroceryItem[]      @relation("GroceryItemAssignee")
+  createdEvents        FamilyEvent[]      @relation("EventCreator")
+  notifications        Notification[]
 
   @@map("users")
 }
@@ -55,9 +81,13 @@ model Family {
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  memberships FamilyMembership[]
-  invitations FamilyInvitation[]
-  activities  FamilyActivity[]
+  memberships   FamilyMembership[]
+  invitations   FamilyInvitation[]
+  activities    FamilyActivity[]
+  tasks         Task[]
+  groceryLists  GroceryList[]
+  events        FamilyEvent[]
+  notifications Notification[]
 
   @@map("families")
 }
@@ -118,6 +148,105 @@ model FamilyActivity {
   @@map("family_activities")
 }
 
+model Task {
+  id           String         @id @db.Char(26)
+  familyId     String         @map("family_id") @db.Char(26)
+  title        String
+  description  String?
+  status       TaskStatus     @default(TODO)
+  priority     TaskPriority   @default(MEDIUM)
+  assignedToId String?        @map("assigned_to_id") @db.Char(26)
+  createdById  String         @map("created_by_id") @db.Char(26)
+  dueDate      DateTime?      @map("due_date") @db.Date
+  recurrence   TaskRecurrence @default(NONE)
+  completedAt  DateTime?      @map("completed_at") @db.Timestamptz(6)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family     Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  assignedTo User?  @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User   @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([familyId, status, dueDate])
+  @@index([familyId, assignedToId])
+  @@map("tasks")
+}
+
+model GroceryList {
+  id          String   @id @db.Char(26)
+  familyId    String   @map("family_id") @db.Char(26)
+  name        String   @default("Groceries")
+  createdById String   @map("created_by_id") @db.Char(26)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family    Family        @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  createdBy User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  items     GroceryItem[]
+
+  @@unique([familyId])
+  @@map("grocery_lists")
+}
+
+model GroceryItem {
+  id           String    @id @db.Char(26)
+  listId       String    @map("list_id") @db.Char(26)
+  name         String
+  quantity     String?
+  category     String?
+  assignedToId String?   @map("assigned_to_id") @db.Char(26)
+  isCompleted  Boolean   @default(false) @map("is_completed")
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  list       GroceryList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assignedTo User?       @relation("GroceryItemAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([listId, isCompleted, createdAt])
+  @@map("grocery_items")
+}
+
+model FamilyEvent {
+  id          String    @id @db.Char(26)
+  familyId    String    @map("family_id") @db.Char(26)
+  title       String
+  description String?
+  location    String?
+  startAt     DateTime  @map("start_at") @db.Timestamptz(6)
+  endAt       DateTime? @map("end_at") @db.Timestamptz(6)
+  allDay      Boolean   @default(false) @map("all_day")
+  createdById String    @map("created_by_id") @db.Char(26)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  createdBy User   @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([familyId, startAt])
+  @@map("family_events")
+}
+
+model Notification {
+  id          String    @id @db.Char(26)
+  familyId    String    @map("family_id") @db.Char(26)
+  recipientId String    @map("recipient_id") @db.Char(26)
+  type        String
+  title       String
+  message     String
+  metadata    Json      @default("{}")
+  readAt      DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  recipient User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([recipientId, readAt])
+  @@index([familyId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
 model RefreshToken {
   id        String    @id @db.Char(26)
   userId    String    @map("user_id") @db.Char(26)
@@ -130,4 +259,18 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @db.Char(26)
+  userId    String    @map("user_id") @db.Char(26)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("password_reset_tokens")
 }

@@ -1,6 +1,6 @@
 # RUMA — Database Strategy
 
-**Status:** Accepted for Phase 0  
+**Status:** Accepted through Phase 1 MVP  
 **Engine:** PostgreSQL  
 **ORM:** Prisma  
 **Related:** `docs/05_DATABASE.md` (index), `SECURITY.md`, `DOMAIN_MODEL.md`
@@ -190,19 +190,27 @@ Migrations:
 
 - `20260808010000_phase0_foundation`
 - `20260808020000_phase1_family_workspace`
+- `20260808040000_phase1_household_collaboration`
+- `20260808050000_password_reset_tokens`
 
-| Table                | Purpose                                            |
-| -------------------- | -------------------------------------------------- |
-| `users`              | Identity + Argon2id password hash                  |
-| `refresh_tokens`     | Opaque refresh sessions (hashed at rest)           |
-| `families`           | Tenant root (`name`, `household_name`, `timezone`) |
-| `family_memberships` | User↔Family with `OWNER`/`ADMIN`/`MEMBER`          |
-| `family_invitations` | Email invites with hashed token + status machine   |
-| `family_activities`  | Append-only structured family activity events      |
+| Table                   | Purpose                                                           |
+| ----------------------- | ----------------------------------------------------------------- |
+| `users`                 | Identity + Argon2id password hash                                 |
+| `refresh_tokens`        | Opaque refresh sessions (hashed at rest)                          |
+| `password_reset_tokens` | Single-use password reset tokens (hashed at rest)                 |
+| `families`              | Tenant root (`name`, `household_name`, `timezone`)                |
+| `family_memberships`    | User↔Family with `OWNER`/`ADMIN`/`MEMBER`                         |
+| `family_invitations`    | Email invites with hashed token + status machine                  |
+| `family_activities`     | Append-only structured family activity events                     |
+| `tasks`                 | Family chores (status/priority/assignee/due date/recurrence flag) |
+| `grocery_lists`         | One shared list per family                                        |
+| `grocery_items`         | Grocery line items + completion                                   |
+| `family_events`         | Shared calendar events                                            |
+| `notifications`         | In-app notifications per recipient                                |
 
 IDs are ULID (`CHAR(26)`), generated in application code.
 
-Chores/grocery/finance tables remain future work.
+Date/time + recurrence rules: ADR-008. Finance tables remain future work.
 
 ---
 

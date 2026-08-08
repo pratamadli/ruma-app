@@ -1,29 +1,67 @@
 # RUMA — Observability (Minimal)
 
-**Status:** Accepted for Phase 0
+**Status:** Accepted through Phase 0/1 engineering complete  
+**Related:** ADR-009, `DEPLOYMENT.md`
 
 ## Goals
 
 Enough visibility to debug foundation issues without building a platform team stack.
 
-## Phase 0
+## Implemented
 
-- Structured application logs on API (Nest logger → JSON in production later).
-- Consistent API error envelope with `requestId` (wired as headers land).
-- Frontend surfaces API health on the foundation landing page.
+### Request correlation
 
-## Near-term (before external users)
+- API middleware assigns `requestId` (ULID) when `x-request-id` is absent.
+- Response header: `x-request-id`.
+- Error envelope includes `error.requestId`.
 
-- **Sentry** for API + web error tracking when `SENTRY_DSN` is present.
-- Do not send PII/secrets to Sentry breadcrumbs.
+### Production logging (API)
 
-## Later (MVP usage)
+When `NODE_ENV=production`, Nest uses a JSON logger (`JsonLogger`):
 
-- **PostHog** for product analytics (opt-in / privacy-conscious events).
-- Basic performance signals (web vitals, API latency logs).
+```json
+{
+  "level": "info",
+  "message": "...",
+  "context": "Bootstrap",
+  "timestamp": "2026-08-08T00:00:00.000Z"
+}
+```
 
-## Non-goals now
+**Never log:** passwords, JWTs, refresh tokens, invitation tokens, reset tokens, Authorization headers, or future financial payloads.
 
-- Full APM
-- Custom metrics warehouse
-- Log sampling platforms beyond provider free tiers
+### Sentry
+
+| Surface | Package         | Env                                                                 |
+| ------- | --------------- | ------------------------------------------------------------------- |
+| API     | `@sentry/node`  | `SENTRY_DSN`, optional `SENTRY_ENVIRONMENT`                         |
+| Web     | `@sentry/react` | `NEXT_PUBLIC_SENTRY_DSN`, optional `NEXT_PUBLIC_SENTRY_ENVIRONMENT` |
+
+- Disabled when DSN is unset (local/CI default).
+- `sendDefaultPii: false`; sensitive header/cookie/token keys scrubbed in `beforeSend`.
+- API captures unhandled exceptions and HTTP 5xx via the global exception filter.
+- Web initializes on client mount and reports `global-error` boundary failures.
+
+**Deploy config:** set DSNs in Railway (API) and Vercel (web). Use free-tier Sentry projects. No secrets in frontend beyond the public DSN.
+
+### Health
+
+- `GET /v1/health` — liveness
+- `GET /v1/health/ready` — DB readiness
+
+## Deferred
+
+| Item                                | Why                                                 |
+| ----------------------------------- | --------------------------------------------------- |
+| PostHog                             | Wait for real product usage (ADR-009)               |
+| Source maps upload pipeline         | Optional; add when release tracking becomes painful |
+| Full APM / custom metrics warehouse | Non-goal                                            |
+
+## Log levels
+
+| Level          | Use                                          |
+| -------------- | -------------------------------------------- |
+| `error`        | Unexpected failures, email provider failures |
+| `warn`         | Recoverable anomalies                        |
+| `info` / `log` | Boot, notable domain events (no secrets)     |
+| `debug`        | Local only                                   |

@@ -20,8 +20,15 @@ Implemented capabilities:
    - Local: `SameSite=Lax` (API on localhost).
    - Production: `Secure` + `SameSite=None` on the API; the **web app must call the API same-origin** via Next.js rewrite (`NEXT_PUBLIC_API_URL=/v1` + `API_PROXY_TARGET`) so the cookie is first-party on Vercel. Browser → Railway cross-site cookies are unreliable and look like “logged out” after navigation/reload.
 4. Access token delivered to the web client **in memory** and sent as `Authorization: Bearer <token>`.
-5. Magic link and OAuth (Google) remain planned extensions.
-6. Transactional email via Resend when `RESEND_API_KEY` is set (invites already supported).
+5. **Password reset:** `POST /v1/auth/forgot-password` + `POST /v1/auth/reset-password`.
+   - Cryptographically random token, SHA-256 hashed at rest (`password_reset_tokens`).
+   - Default TTL `PASSWORD_RESET_TTL_SECONDS` (1 hour).
+   - Single-use (`usedAt`); prior unused tokens invalidated on new request.
+   - Successful reset updates password and **revokes all refresh sessions**.
+   - Unknown emails return the same `{ ok: true }` (no enumeration).
+   - Email via existing `EmailService` / Resend (dev logs when unset).
+6. Transactional email via Resend when `RESEND_API_KEY` is set (invites + password reset).
+7. Magic link and OAuth (Google) are **deferred** until needed — see ADR-009.
 
 ### Password policy (MVP baseline)
 

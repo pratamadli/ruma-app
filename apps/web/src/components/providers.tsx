@@ -2,9 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider as ReduxProvider } from 'react-redux';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { store } from '@/lib/store';
 import { AuthProvider } from '@/lib/auth-context';
+import { initWebSentry } from '@/lib/sentry';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -18,6 +19,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         },
       }),
   );
+
+  useEffect(() => {
+    initWebSentry();
+  }, []);
 
   return (
     <ReduxProvider store={store}>

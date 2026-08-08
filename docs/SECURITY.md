@@ -1,7 +1,7 @@
 # RUMA — Security Foundation
 
-**Status:** Accepted for Phase 0  
-**Related:** `API_ARCHITECTURE.md`, `DATABASE.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/004-family-multi-tenancy.md`
+**Status:** Accepted through Phase 0/1 engineering complete  
+**Related:** `API_ARCHITECTURE.md`, `DATABASE.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/004-family-multi-tenancy.md`, `docs/adr/009-phase01-deferred-engineering.md`
 
 ---
 
@@ -37,8 +37,8 @@ Priorities:
 - Short-lived access JWT (Bearer, in-memory on web) + rotatable refresh sessions (httpOnly cookie).
 - Production web must use same-origin API proxy on Vercel so refresh cookies are first-party; see `DEPLOYMENT.md` and ADR-003.
 - Auth endpoints rate-limited.
-- Password reset / magic links use single-use, expiring tokens.
-- OAuth (later) links to existing user by verified email with explicit account-linking rules.
+- Password reset uses single-use, expiring, hashed tokens; successful reset revokes refresh sessions.
+- Magic link and OAuth remain deferred (ADR-009); when added, use the same hashed token / verified-email linking rules.
 
 Details: ADR-003.
 
@@ -50,9 +50,15 @@ For every family-scoped operation:
 
 1. Authenticate user.
 2. Resolve target `familyId`.
-3. Verify active membership.
-4. Verify role for privileged actions.
+3. Verify active membership (`FamilyMemberGuard`).
+4. Verify role for privileged actions (invites / member admin).
 5. Scope all queries by `family_id`.
+
+Phase 1 household resources (tasks, grocery, events, dashboard) follow the same path. Cross-tenant access returns **404** (not a detailed 403) to avoid leaking existence.
+
+Notifications are **recipient-scoped**: list/read/read-all only operate on rows where `recipient_id = current user`. `familyId` / `assignedTo` / `createdBy` from the client are never trusted without membership checks.
+
+Household collaboration permissions stay intentionally light: any active member may create/update/complete shared tasks, grocery items, and events. Owner/admin remains required for membership management.
 
 Additional rules:
 
@@ -83,7 +89,7 @@ Additional rules:
 ## 7. Rate limiting
 
 - Global API throttling.
-- Stricter limits for `sign-in`, `sign-up`, invite acceptance, password reset.
+- Stricter limits for `sign-in`, `sign-up`, `forgot-password`, `reset-password`, and invite creation.
 - Add IP/user-based controls before public launch if abuse appears.
 
 ---

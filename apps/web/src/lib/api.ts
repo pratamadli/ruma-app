@@ -1,13 +1,21 @@
 import type {
   AuthTokensResponse,
   FamilyActivityListResponse,
+  FamilyEventListResponse,
+  FamilyEventResponse,
   FamilyInvitationResponse,
   FamilyInvitationsResponse,
   FamilyListResponse,
   FamilyMembersResponse,
   FamilyResponse,
+  GroceryItemResponse,
+  GroceryListResponse,
   HealthResponse,
+  HouseholdDashboardResponse,
   InvitationPreviewResponse,
+  NotificationListResponse,
+  TaskListResponse,
+  TaskResponse,
   UserResponse,
 } from '@ruma/types';
 
@@ -76,6 +84,20 @@ export function signUp(input: { email: string; password: string; name?: string }
 
 export function signIn(input: { email: string; password: string }) {
   return apiFetch<AuthTokensResponse>('/auth/sign-in', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function forgotPassword(input: { email: string }) {
+  return apiFetch<{ ok: true }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function resetPassword(input: { token: string; password: string }) {
+  return apiFetch<{ ok: true }>('/auth/reset-password', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -182,4 +204,187 @@ export function listActivity(accessToken: string, familyId: string) {
     {},
     { accessToken },
   );
+}
+
+export function getHouseholdDashboard(accessToken: string, familyId: string) {
+  return apiFetch<HouseholdDashboardResponse>(
+    `/families/${familyId}/dashboard`,
+    {},
+    { accessToken },
+  );
+}
+
+export function listTasks(accessToken: string, familyId: string) {
+  return apiFetch<TaskListResponse>(`/families/${familyId}/tasks`, {}, { accessToken });
+}
+
+export function createTask(
+  accessToken: string,
+  familyId: string,
+  input: {
+    title: string;
+    description?: string;
+    status?: TaskResponse['status'];
+    priority?: TaskResponse['priority'];
+    assignedToId?: string | null;
+    dueDate?: string | null;
+    recurrence?: TaskResponse['recurrence'];
+  },
+) {
+  return apiFetch<TaskResponse>(
+    `/families/${familyId}/tasks`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateTask(
+  accessToken: string,
+  familyId: string,
+  taskId: string,
+  input: Partial<{
+    title: string;
+    description: string | null;
+    status: TaskResponse['status'];
+    priority: TaskResponse['priority'];
+    assignedToId: string | null;
+    dueDate: string | null;
+    recurrence: TaskResponse['recurrence'];
+  }>,
+) {
+  return apiFetch<TaskResponse>(
+    `/families/${familyId}/tasks/${taskId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function deleteTask(accessToken: string, familyId: string, taskId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/tasks/${taskId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function getGrocery(accessToken: string, familyId: string) {
+  return apiFetch<GroceryListResponse>(`/families/${familyId}/grocery`, {}, { accessToken });
+}
+
+export function addGroceryItem(
+  accessToken: string,
+  familyId: string,
+  input: { name: string; quantity?: string; category?: string },
+) {
+  return apiFetch<GroceryItemResponse>(
+    `/families/${familyId}/grocery/items`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateGroceryItem(
+  accessToken: string,
+  familyId: string,
+  itemId: string,
+  input: Partial<{
+    name: string;
+    quantity: string | null;
+    category: string | null;
+    isCompleted: boolean;
+  }>,
+) {
+  return apiFetch<GroceryItemResponse>(
+    `/families/${familyId}/grocery/items/${itemId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function deleteGroceryItem(accessToken: string, familyId: string, itemId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/grocery/items/${itemId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function clearCompletedGrocery(accessToken: string, familyId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/grocery/clear-completed`,
+    { method: 'POST' },
+    { accessToken },
+  );
+}
+
+export function listEvents(accessToken: string, familyId: string, from?: string) {
+  const query = from ? `?from=${encodeURIComponent(from)}` : '';
+  return apiFetch<FamilyEventListResponse>(
+    `/families/${familyId}/events${query}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createEvent(
+  accessToken: string,
+  familyId: string,
+  input: {
+    title: string;
+    description?: string;
+    location?: string;
+    startAt: string;
+    endAt?: string | null;
+    allDay?: boolean;
+  },
+) {
+  return apiFetch<FamilyEventResponse>(
+    `/families/${familyId}/events`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateEvent(
+  accessToken: string,
+  familyId: string,
+  eventId: string,
+  input: Partial<{
+    title: string;
+    description: string | null;
+    location: string | null;
+    startAt: string;
+    endAt: string | null;
+    allDay: boolean;
+  }>,
+) {
+  return apiFetch<FamilyEventResponse>(
+    `/families/${familyId}/events/${eventId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function deleteEvent(accessToken: string, familyId: string, eventId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/events/${eventId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function listNotifications(accessToken: string) {
+  return apiFetch<NotificationListResponse>('/notifications', {}, { accessToken });
+}
+
+export function markNotificationRead(accessToken: string, notificationId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/notifications/${notificationId}/read`,
+    { method: 'PATCH' },
+    { accessToken },
+  );
+}
+
+export function markAllNotificationsRead(accessToken: string) {
+  return apiFetch<{ ok: boolean }>('/notifications/read-all', { method: 'POST' }, { accessToken });
 }

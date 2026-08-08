@@ -1,8 +1,8 @@
 # RUMA — API Architecture
 
-**Status:** Accepted for Phase 0  
+**Status:** Accepted through Phase 1 MVP  
 **Runtime:** NestJS in `apps/api`  
-**Related:** `docs/06_API_GUIDELINES.md`, `SECURITY.md`, `docs/adr/003-authentication-strategy.md`
+**Related:** `docs/06_API_GUIDELINES.md`, `SECURITY.md`, `docs/adr/003-authentication-strategy.md`, `docs/adr/008-datetime-and-task-recurrence.md`
 
 ---
 
@@ -21,16 +21,19 @@
 apps/api/src/
 ├── main.ts
 ├── app.module.ts
-├── config/                 # env validation, config module
-├── common/                 # filters, interceptors, guards, decorators
-├── prisma/                 # Prisma service module
+├── config/
+├── common/
+├── prisma/
 ├── health/
-├── auth/                   # implemented when Auth phase starts
+├── auth/
 ├── users/
-└── families/               # memberships/invites may live here initially
+├── families/               # memberships, invites, activity
+├── tasks/
+├── grocery/
+├── calendar/
+├── notifications/          # user inbox (not family-id in path)
+└── household/              # dashboard aggregation
 ```
-
-Future MVP modules (not in Phase 0 feature form): `tasks`, `grocery`, `calendar`, `notifications`, `activity`.
 
 ### Module rules
 
@@ -204,23 +207,44 @@ Do not expose internals.
 
 ---
 
-## 14. Phase 0 implementation scope (implemented)
+## 14. Implemented surface (Phase 0 + Phase 1)
 
-Live foundation endpoints:
+### Foundation
 
-| Method | Path                     | Auth                    |
-| ------ | ------------------------ | ----------------------- |
-| GET    | `/v1/health`             | Public                  |
-| GET    | `/v1/health/ready`       | Public                  |
-| POST   | `/v1/auth/sign-up`       | Public                  |
-| POST   | `/v1/auth/sign-in`       | Public                  |
-| POST   | `/v1/auth/refresh`       | Public (refresh cookie) |
-| POST   | `/v1/auth/sign-out`      | Public (refresh cookie) |
-| GET    | `/v1/auth/me`            | Bearer                  |
-| POST   | `/v1/families`           | Bearer                  |
-| GET    | `/v1/families`           | Bearer                  |
-| GET    | `/v1/families/:familyId` | Bearer + membership     |
+| Method | Path                       | Auth                    |
+| ------ | -------------------------- | ----------------------- |
+| GET    | `/v1/health`               | Public                  |
+| GET    | `/v1/health/ready`         | Public                  |
+| POST   | `/v1/auth/sign-up`         | Public                  |
+| POST   | `/v1/auth/sign-in`         | Public                  |
+| POST   | `/v1/auth/refresh`         | Public (refresh cookie) |
+| POST   | `/v1/auth/sign-out`        | Public (refresh cookie) |
+| POST   | `/v1/auth/forgot-password` | Public (throttled)      |
+| POST   | `/v1/auth/reset-password`  | Public (throttled)      |
+| GET    | `/v1/auth/me`              | Bearer                  |
+| POST   | `/v1/families`             | Bearer                  |
+| GET    | `/v1/families`             | Bearer                  |
+| GET    | `/v1/families/:familyId`   | Bearer + membership     |
+
+### Household collaboration (Phase 1)
+
+| Method           | Path                                             | Auth                |
+| ---------------- | ------------------------------------------------ | ------------------- |
+| GET              | `/v1/families/:familyId/dashboard`               | Bearer + membership |
+| GET/POST         | `/v1/families/:familyId/tasks`                   | Bearer + membership |
+| GET/PATCH/DELETE | `/v1/families/:familyId/tasks/:taskId`           | Bearer + membership |
+| GET              | `/v1/families/:familyId/grocery`                 | Bearer + membership |
+| POST             | `/v1/families/:familyId/grocery/items`           | Bearer + membership |
+| PATCH/DELETE     | `/v1/families/:familyId/grocery/items/:itemId`   | Bearer + membership |
+| POST             | `/v1/families/:familyId/grocery/clear-completed` | Bearer + membership |
+| GET/POST         | `/v1/families/:familyId/events`                  | Bearer + membership |
+| PATCH/DELETE     | `/v1/families/:familyId/events/:eventId`         | Bearer + membership |
+| GET              | `/v1/notifications`                              | Bearer (recipient)  |
+| PATCH            | `/v1/notifications/:notificationId/read`         | Bearer (recipient)  |
+| POST             | `/v1/notifications/read-all`                     | Bearer (recipient)  |
 
 Guards: global `AuthGuard`, `FamilyMemberGuard`, `RolesGuard`, Nest throttler.
 
-Do **not** implement chores/grocery/finance/AI endpoints in Phase 0.
+Notifications are recipient-scoped: the API never returns another user’s inbox rows.
+
+Do **not** implement finance / assets / AI endpoints in Phase 1.

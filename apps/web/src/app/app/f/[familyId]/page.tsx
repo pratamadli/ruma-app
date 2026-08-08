@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Card, CardDescription, CardTitle } from '@ruma/ui';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/lib/auth-context';
-import { getFamily, listActivity, listMembers } from '@/lib/api';
+import { getFamily, getHouseholdDashboard, listActivity } from '@/lib/api';
 import { formatActivity } from '@/lib/activity-copy';
 
 function greeting() {
@@ -27,10 +27,10 @@ export default function FamilyDashboardPage() {
     queryFn: () => getFamily(accessToken!, familyId),
   });
 
-  const membersQuery = useQuery({
-    queryKey: ['members', familyId, accessToken],
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard', familyId, accessToken],
     enabled: Boolean(accessToken && familyId),
-    queryFn: () => listMembers(accessToken!, familyId),
+    queryFn: () => getHouseholdDashboard(accessToken!, familyId),
   });
 
   const activityQuery = useQuery({
@@ -40,12 +40,13 @@ export default function FamilyDashboardPage() {
   });
 
   const family = familyQuery.data;
+  const dash = dashboardQuery.data;
   const displayName = user?.name ?? user?.email ?? 'there';
 
   return (
     <AppShell familyId={familyId}>
       {familyQuery.isLoading ? (
-        <p className="text-[var(--ruma-color-ink-muted)]">Loading family…</p>
+        <p className="text-[var(--ruma-color-ink-muted)]">Loading household…</p>
       ) : familyQuery.isError ? (
         <Card>
           <CardTitle>Unable to open this family</CardTitle>
@@ -71,71 +72,97 @@ export default function FamilyDashboardPage() {
             </p>
           </header>
 
-          <section className="grid gap-4 md:grid-cols-3">
-            <Card className="md:col-span-2">
-              <CardTitle>Family members</CardTitle>
-              <CardDescription>
-                {membersQuery.data?.members.length ?? 0} people in this workspace
-              </CardDescription>
-              <ul className="mt-4 grid gap-2 p-0">
-                {(membersQuery.data?.members ?? []).map((member) => (
-                  <li
-                    key={member.membershipId}
-                    className="flex list-none items-center justify-between rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] px-4 py-3"
-                  >
-                    <div>
-                      <strong>{member.name ?? member.email}</strong>
-                      {member.userId === user?.id ? (
-                        <span className="ml-2 text-sm text-[var(--ruma-color-ink-muted)]">You</span>
-                      ) : null}
-                      <div className="text-sm text-[var(--ruma-color-ink-muted)]">
-                        {member.email}
+          <section className="grid gap-3 sm:grid-cols-3">
+            <Link href={`/app/f/${familyId}/tasks`} className="no-underline">
+              <Card className="h-full transition-colors hover:bg-black/[0.02]">
+                <CardTitle>Today&apos;s tasks</CardTitle>
+                <p className="mt-3 mb-0 text-3xl font-semibold tracking-tight">
+                  {dash?.todayTasksRemaining ?? '—'}
+                </p>
+                <CardDescription>remaining</CardDescription>
+              </Card>
+            </Link>
+            <Link href={`/app/f/${familyId}/grocery`} className="no-underline">
+              <Card className="h-full transition-colors hover:bg-black/[0.02]">
+                <CardTitle>Grocery</CardTitle>
+                <p className="mt-3 mb-0 text-3xl font-semibold tracking-tight">
+                  {dash?.groceryOpenCount ?? '—'}
+                </p>
+                <CardDescription>open items</CardDescription>
+              </Card>
+            </Link>
+            <Link href={`/app/f/${familyId}/calendar`} className="no-underline">
+              <Card className="h-full transition-colors hover:bg-black/[0.02]">
+                <CardTitle>Upcoming</CardTitle>
+                <p className="mt-3 mb-0 text-3xl font-semibold tracking-tight">
+                  {dash?.upcomingEventsCount ?? '—'}
+                </p>
+                <CardDescription>events</CardDescription>
+              </Card>
+            </Link>
+          </section>
+
+          <section className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardTitle>Focus tasks</CardTitle>
+              <CardDescription>What needs attention soon</CardDescription>
+              {(dash?.todayTasks.length ?? 0) === 0 ? (
+                <p className="mt-4 text-sm text-[var(--ruma-color-ink-muted)]">No open tasks.</p>
+              ) : (
+                <ul className="mt-4 grid gap-2 p-0">
+                  {dash?.todayTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className="list-none border-b border-[var(--ruma-color-border)] pb-2 last:border-none"
+                    >
+                      <div className="font-medium">{task.title}</div>
+                      <div className="text-xs text-[var(--ruma-color-ink-muted)]">
+                        {task.dueDate ? `Due ${task.dueDate}` : 'No due date'}
+                        {task.assignedTo
+                          ? ` · ${task.assignedTo.name ?? task.assignedTo.email}`
+                          : ''}
                       </div>
-                    </div>
-                    <span className="text-xs font-semibold uppercase tracking-wide text-[var(--ruma-color-accent)]">
-                      {member.role}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {membersQuery.isLoading ? (
-                <p className="mt-3 text-sm text-[var(--ruma-color-ink-muted)]">Loading members…</p>
-              ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
 
             <Card>
-              <CardTitle>Quick actions</CardTitle>
-              <CardDescription>Keep the household connected.</CardDescription>
-              <div className="mt-4 grid gap-2">
-                <Link href={`/app/f/${familyId}/members`}>
-                  <Button className="w-full" variant="secondary">
-                    Invite member
-                  </Button>
-                </Link>
-                <Link href={`/app/f/${familyId}/members`}>
-                  <Button className="w-full" variant="ghost">
-                    View members
-                  </Button>
-                </Link>
-                <Link href={`/app/f/${familyId}/settings`}>
-                  <Button className="w-full" variant="ghost">
-                    Family settings
-                  </Button>
-                </Link>
-              </div>
+              <CardTitle>Coming up</CardTitle>
+              <CardDescription>Family schedule</CardDescription>
+              {(dash?.upcomingEvents.length ?? 0) === 0 ? (
+                <p className="mt-4 text-sm text-[var(--ruma-color-ink-muted)]">
+                  No upcoming events.
+                </p>
+              ) : (
+                <ul className="mt-4 grid gap-2 p-0">
+                  {dash?.upcomingEvents.map((event) => (
+                    <li
+                      key={event.id}
+                      className="list-none border-b border-[var(--ruma-color-border)] pb-2 last:border-none"
+                    >
+                      <div className="font-medium">{event.title}</div>
+                      <div className="text-xs text-[var(--ruma-color-ink-muted)]">
+                        {new Date(event.startAt).toLocaleString()}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
           </section>
 
           <Card>
-            <CardTitle>Activity</CardTitle>
-            <CardDescription>Recent family events</CardDescription>
+            <CardTitle>Recent activity</CardTitle>
+            <CardDescription>What changed in the household</CardDescription>
             {activityQuery.isLoading ? (
               <p className="mt-4 text-sm text-[var(--ruma-color-ink-muted)]">Loading activity…</p>
             ) : (activityQuery.data?.activities.length ?? 0) === 0 ? (
               <p className="mt-4 text-sm text-[var(--ruma-color-ink-muted)]">No activity yet.</p>
             ) : (
               <ul className="mt-4 grid gap-3 p-0">
-                {activityQuery.data?.activities.map((item) => (
+                {activityQuery.data?.activities.slice(0, 8).map((item) => (
                   <li
                     key={item.id}
                     className="list-none border-b border-[var(--ruma-color-border)] pb-3 last:border-none"

@@ -1,16 +1,14 @@
 # RUMA — Product PRD
 
-## MVP
+## MVP (Phase 1 — implemented)
 
 - Authentication
-- Family Workspace
-- Create Family
-- Invite Members
-- Dashboard
-- Chores
-- Grocery
-- Calendar
-- Notifications
+- Family Workspace (create family, invite members, membership)
+- Household Dashboard (today’s tasks, grocery state, upcoming events, recent activity)
+- Tasks / Chores (assign, due date, status, complete)
+- Shared Grocery (fast add / check-off)
+- Family Calendar (agenda / upcoming)
+- In-app Notifications (unread count, mark read)
 - Activity Feed
 
 ## Version 1 — Home Management

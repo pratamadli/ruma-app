@@ -1,7 +1,9 @@
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import type { ApiErrorBody } from '@ruma/types';
+import { captureException } from '../../observability/sentry';
+import type { RequestWithId } from '../middleware/request-id.middleware';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -10,7 +12,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request & { requestId?: string }>();
+    const request = ctx.getRequest<RequestWithId>();
 
     const requestId =
       request.requestId ??
@@ -40,7 +42,24 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
     } else {
-      this.logger.error(exception);
+      this.logger.error(
+        JSON.stringify({
+          event: 'unhandled_exception',
+          requestId,
+          path: request.url,
+          method: request.method,
+        }),
+        exception instanceof Error ? exception.stack : undefined,
+      );
+      captureException(exception, {
+        requestId,
+        path: request.url,
+        method: request.method,
+      });
+    }
+
+    if (status >= 500 && exception instanceof HttpException) {
+      captureException(exception, { requestId, path: request.url, method: request.method, code });
     }
 
     const payload: ApiErrorBody = {

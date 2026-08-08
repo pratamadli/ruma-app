@@ -1,6 +1,6 @@
 # RUMA — Testing Strategy
 
-**Status:** Accepted for Phase 0
+**Status:** Accepted through Phase 1 MVP
 
 ---
 
@@ -14,35 +14,38 @@ Do not pursue vanity coverage percentages. Prefer a small number of meaningful t
 
 ## 2. Test layers
 
-| Layer              | Where                      | Tooling (Phase 0)        | Purpose                                  |
-| ------------------ | -------------------------- | ------------------------ | ---------------------------------------- |
-| Unit               | `packages/*`, api services | Vitest                   | Pure logic, validation, mappers          |
-| API integration    | `apps/api`                 | Vitest + Nest testing    | HTTP + guards + (later) DB               |
-| Frontend component | `packages/ui`, `apps/web`  | Vitest + Testing Library | Primitives and critical UI behavior      |
-| End-to-end         | later                      | Playwright               | Critical user journeys before MVP launch |
+| Layer              | Where                      | Tooling                  | Purpose                             |
+| ------------------ | -------------------------- | ------------------------ | ----------------------------------- |
+| Unit               | `packages/*`, api services | Vitest                   | Pure logic, validation, mappers     |
+| API integration    | `apps/api`                 | Vitest + Nest + Postgres | HTTP + guards + family isolation    |
+| Frontend component | `packages/ui`, `apps/web`  | Vitest + Testing Library | Primitives and critical UI behavior |
+| End-to-end         | later                      | Playwright               | Full browser journeys               |
 
 ---
 
-## 3. What to test in Phase 0
+## 3. What is covered (Phase 0 + Phase 1)
 
-Minimum demonstrations:
+Foundation:
 
-1. Shared validation schema unit test (e.g., env or email normalization helper).
-2. API health endpoint test.
-3. UI primitive smoke test (e.g., Button renders).
+1. Shared validation schema unit tests.
+2. API health / DB connectivity.
+3. UI primitive smoke tests.
 
-When Auth/Family land, add first-class tests for:
+Family + household collaboration (API integration):
 
-- Unauthenticated access denied.
-- Cross-family access denied.
-- Role-gated invite/admin actions.
+- Family create → invite → accept → activity + isolation (`family-workspace.test.ts`).
+- Cross-family ID access denied (`family-isolation.test.ts`).
+- Tasks / grocery / calendar / notifications + isolation (`household-collaboration.test.ts`).
+- Password reset: unknown email, invalid/expired/reused token, success + session revoke (`password-reset.test.ts`).
+
+Integration tests that need DB require `DATABASE_URL` and clean up fixture users in `beforeAll`/`afterAll` (including notifications and household child tables).
 
 ---
 
 ## 4. What not to do yet
 
 - Hundreds of snapshot tests.
-- E2E suite before auth + family flows exist.
+- Full Playwright suite before Phase 2 UI stabilizes (manual MVP scenario remains the product check; ADR-009).
 - Visual regression platform.
 - Load testing.
 

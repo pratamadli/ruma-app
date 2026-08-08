@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import { Button, Card, CardDescription, CardTitle, Input, Label, RumaBrand } from '@ruma/ui';
 import { useAuth } from '@/lib/auth-context';
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetNotice = searchParams.get('reset') === '1';
   const { signInWithPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +38,11 @@ export default function SignInPage() {
         </Link>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>Continue into your household workspace.</CardDescription>
+        {resetNotice ? (
+          <p className="mt-4 mb-0 text-sm text-[var(--ruma-color-ink-muted)]">
+            Password updated. You can sign in with your new password.
+          </p>
+        ) : null}
         <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
           <div>
             <Label htmlFor="email">Email</Label>
@@ -49,7 +56,15 @@ export default function SignInPage() {
             />
           </div>
           <div>
-            <Label htmlFor="password">Password</Label>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                className="text-xs text-[var(--ruma-color-ink-muted)] underline"
+                href="/forgot-password"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"
@@ -72,5 +87,13 @@ export default function SignInPage() {
         </p>
       </Card>
     </main>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
   );
 }
