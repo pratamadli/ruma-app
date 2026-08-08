@@ -176,5 +176,7 @@ Bento layouts are for dashboard overview compositions, not every page.
 - Authenticated shell: `/app`, `/app/f/:familyId` home dashboard, tasks, grocery, calendar, members, settings; invites at `/invite/:token`
 - Notification menu in shell (TanStack Query + light polling)
 - Access token in memory; refresh via httpOnly cookie (same-origin `/v1` on Vercel)
+- Product version footer (`v{version}` from `apps/web/package.json` via `NEXT_PUBLIC_APP_VERSION`); home footer also links quietly to `/design-system`
+- Landing page is a fixed, non-scrolling first viewport
 
 Do **not** build finance/assets/AI UI yet.

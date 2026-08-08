@@ -68,6 +68,7 @@ Migrations run via Railway `preDeployCommand` (`prisma migrate deploy`) before e
 | `API_PROXY_TARGET`               | `https://<api>.up.railway.app` (**no** `/v1` suffix) |
 | `NEXT_PUBLIC_SENTRY_DSN`         | optional public DSN                                  |
 | `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | optional (e.g. `production`)                         |
+| `NEXT_PUBLIC_APP_VERSION`        | optional; defaults from `apps/web/package.json`      |
 
 `API_PROXY_TARGET` enables a Next.js rewrite (`/v1/*` → Railway) in `apps/web/next.config.ts`. The browser must call **same-origin** `/v1` on Vercel. Calling Railway from the browser directly breaks refresh cookies (third-party cookie) so Family/nav reloads look like “logged out”.
 
