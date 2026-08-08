@@ -6,6 +6,7 @@ import { ActivityService } from '../families/activity.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { createId } from '../common/ids';
 import { toMemberRef } from '../common/member-ref';
+import { normalizeRecurrence } from '../common/recurrence';
 
 @Injectable()
 export class TasksService {
@@ -32,6 +33,7 @@ export class TasksService {
     if (input.assignedToId) {
       await this.assertActiveMember(familyId, input.assignedToId);
     }
+    const { recurrence, recurrenceWeekdays } = normalizeRecurrence(input);
 
     const task = await this.prisma.$transaction(async (tx) => {
       const created = await tx.task.create({
@@ -45,7 +47,8 @@ export class TasksService {
           assignedToId: input.assignedToId ?? null,
           createdById: actorId,
           dueDate: input.dueDate ? new Date(input.dueDate) : null,
-          recurrence: input.recurrence ?? 'NONE',
+          recurrence,
+          recurrenceWeekdays,
           completedAt: input.status === 'COMPLETED' ? new Date() : null,
         },
         include: { assignedTo: true, createdBy: true },
@@ -99,6 +102,15 @@ export class TasksService {
 
     const nextStatus = input.status ?? existing.status;
     const completedAt = nextStatus === 'COMPLETED' ? (existing.completedAt ?? new Date()) : null;
+    const recurrenceUpdate =
+      input.recurrence === undefined && input.recurrenceWeekdays === undefined
+        ? undefined
+        : normalizeRecurrence({
+            recurrence: input.recurrence ?? existing.recurrence,
+            recurrenceWeekdays:
+              input.recurrenceWeekdays ??
+              (input.recurrence === 'CUSTOM_WEEKDAYS' ? existing.recurrenceWeekdays : []),
+          });
 
     const task = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.task.update({
@@ -115,7 +127,8 @@ export class TasksService {
               : input.dueDate
                 ? new Date(input.dueDate)
                 : null,
-          recurrence: input.recurrence,
+          recurrence: recurrenceUpdate?.recurrence,
+          recurrenceWeekdays: recurrenceUpdate?.recurrenceWeekdays,
           completedAt,
         },
         include: { assignedTo: true, createdBy: true },
@@ -212,6 +225,7 @@ export class TasksService {
     priority: TaskResponse['priority'];
     dueDate: Date | null;
     recurrence: TaskResponse['recurrence'];
+    recurrenceWeekdays: number[];
     completedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -229,6 +243,7 @@ export class TasksService {
       createdBy: toMemberRef(task.createdBy)!,
       dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null,
       recurrence: task.recurrence,
+      recurrenceWeekdays: task.recurrenceWeekdays,
       completedAt: task.completedAt?.toISOString() ?? null,
       createdAt: task.createdAt.toISOString(),
       updatedAt: task.updatedAt.toISOString(),

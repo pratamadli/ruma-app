@@ -3,11 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Card, CardDescription, CardTitle, Input, Label } from '@ruma/ui';
+import { Button, Card, CardDescription, CardTitle, Input, Label, Select } from '@ruma/ui';
+import type { TaskRecurrence, TaskResponse } from '@ruma/types';
 import { AppShell } from '@/components/app-shell';
+import { formatRecurrenceLabel, RecurrenceFields } from '@/components/recurrence-fields';
 import { useAuth } from '@/lib/auth-context';
 import { createTask, listMembers, listTasks, updateTask } from '@/lib/api';
-import type { TaskResponse } from '@ruma/types';
 
 function isToday(dueDate: string | null) {
   if (!dueDate) return false;
@@ -17,11 +18,13 @@ function isToday(dueDate: string | null) {
 export default function TasksPage() {
   const params = useParams<{ familyId: string }>();
   const familyId = params.familyId;
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [assignee, setAssignee] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [recurrence, setRecurrence] = useState<TaskRecurrence>('NONE');
+  const [weekdays, setWeekdays] = useState<number[]>([]);
   const [filter, setFilter] = useState<'all' | 'open' | 'mine'>('open');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -37,7 +40,6 @@ export default function TasksPage() {
     queryFn: () => listMembers(accessToken!, familyId),
   });
 
-  const { user } = useAuth();
   const filtered = useMemo(() => {
     const tasks = tasksQuery.data?.tasks ?? [];
     return tasks.filter((task) => {
@@ -53,6 +55,10 @@ export default function TasksPage() {
   async function onCreate(event: React.FormEvent) {
     event.preventDefault();
     if (!accessToken || !title.trim()) return;
+    if (recurrence === 'CUSTOM_WEEKDAYS' && weekdays.length === 0) {
+      setError('Pick at least one weekday for custom repeat.');
+      return;
+    }
     setPending(true);
     setError(null);
     try {
@@ -60,9 +66,13 @@ export default function TasksPage() {
         title: title.trim(),
         assignedToId: assignee || null,
         dueDate: dueDate || null,
+        recurrence,
+        recurrenceWeekdays: weekdays,
       });
       setTitle('');
       setDueDate('');
+      setRecurrence('NONE');
+      setWeekdays([]);
       await queryClient.invalidateQueries({ queryKey: ['tasks', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['activity', familyId] });
@@ -87,6 +97,7 @@ export default function TasksPage() {
 
   function TaskRow({ task }: { task: TaskResponse }) {
     const done = task.status === 'COMPLETED';
+    const repeat = formatRecurrenceLabel(task.recurrence, task.recurrenceWeekdays);
     return (
       <li className="flex list-none items-start gap-3 rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] px-3 py-3">
         <button
@@ -106,7 +117,7 @@ export default function TasksPage() {
           <div className="mt-1 text-sm text-[var(--ruma-color-ink-muted)]">
             {task.dueDate ? `Due ${task.dueDate}` : 'No due date'}
             {task.assignedTo ? ` · ${task.assignedTo.name ?? task.assignedTo.email}` : ''}
-            {task.recurrence !== 'NONE' ? ` · ${task.recurrence.toLowerCase()}` : ''}
+            {repeat ? ` · ${repeat}` : ''}
           </div>
         </div>
       </li>
@@ -138,9 +149,8 @@ export default function TasksPage() {
             <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
               <div>
                 <Label htmlFor="assignee">Assign to</Label>
-                <select
+                <Select
                   id="assignee"
-                  className="w-full rounded-[var(--ruma-radius-md)] border border-[var(--ruma-color-border)] bg-white px-3 py-2 text-sm"
                   value={assignee}
                   onChange={(e) => setAssignee(e.target.value)}
                 >
@@ -150,7 +160,7 @@ export default function TasksPage() {
                       {member.name ?? member.email}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="due">Due date</Label>
@@ -161,6 +171,15 @@ export default function TasksPage() {
                   onChange={(e) => setDueDate(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="sm:col-span-2">
+              <RecurrenceFields
+                idPrefix="task"
+                recurrence={recurrence}
+                weekdays={weekdays}
+                onRecurrenceChange={setRecurrence}
+                onWeekdaysChange={setWeekdays}
+              />
             </div>
             {error ? (
               <p className="m-0 text-sm text-[var(--ruma-color-danger)] sm:col-span-2">{error}</p>

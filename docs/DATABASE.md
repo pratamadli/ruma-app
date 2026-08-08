@@ -192,6 +192,7 @@ Migrations:
 - `20260808020000_phase1_family_workspace`
 - `20260808040000_phase1_household_collaboration`
 - `20260808050000_password_reset_tokens`
+- `20260808060000_recurrence_weekdays` (+ `20260808061000_…_columns`)
 
 | Table                   | Purpose                                                           |
 | ----------------------- | ----------------------------------------------------------------- |

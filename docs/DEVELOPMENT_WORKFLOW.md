@@ -51,7 +51,7 @@ App-scoped:
 | `@ruma/web`   | `apps/web/package.json` | Shown in the UI footer            |
 | `@ruma/api`   | `apps/api/package.json` | Keep in sync with product release |
 
-Current release: **`1.1.0`** (Phase 0 foundation + Phase 1 household MVP + hardening).
+Current release: **`1.1.1`** (Phase 0/1 + form/brand polish + expanded recurrence preferences).
 
 ### How the UI gets the version
 

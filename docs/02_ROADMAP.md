@@ -1,16 +1,16 @@
 # RUMA Roadmap
 
-**Product version:** `1.1.0` (see root / `apps/web` / `apps/api` `package.json`)
+**Product version:** `1.1.1` (see root / `apps/web` / `apps/api` `package.json`)
 
 ## Phase 0 — Foundation
 
-**Status: COMPLETE** (included in `1.1.0`)
+**Status: COMPLETE** (included in `1.1.x`)
 
 Repository, monorepo, authentication foundation (email/password + JWT/refresh + password reset), database, deployment, design system, CI/CD, observability (requestId, JSON logs, Sentry env-gated).
 
 ## Phase 1 — Family & Household MVP
 
-**Status: COMPLETE** (included in `1.1.0`)
+**Status: COMPLETE** (included in `1.1.x`)
 
 Family workspace + household collaboration:
 
