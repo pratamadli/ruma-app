@@ -1,16 +1,16 @@
 # RUMA Roadmap
 
-**Product version:** `1.1.1` (see root / `apps/web` / `apps/api` `package.json`)
+**Product version:** `2.4.0` (see root / `apps/web` / `apps/api` `package.json`)
 
 ## Phase 0 — Foundation
 
-**Status: COMPLETE** (included in `1.1.x`)
+**Status: COMPLETE** (`1.1.x`)
 
 Repository, monorepo, authentication foundation (email/password + JWT/refresh + password reset), database, deployment, design system, CI/CD, observability (requestId, JSON logs, Sentry env-gated).
 
 ## Phase 1 — Family & Household MVP
 
-**Status: COMPLETE** (included in `1.1.x`)
+**Status: COMPLETE** (`1.1.x`)
 
 Family workspace + household collaboration:
 
@@ -23,31 +23,60 @@ Family workspace + household collaboration:
 
 Implemented as the reusable pattern: **Family → Household resources → Activity → Notification**.
 
-### Deferred (intentionally not blocking Phase 2)
+### Deferred from Phase 0/1
 
 See [ADR-009](./adr/009-phase01-deferred-engineering.md):
 
-- Magic link
-- Google OAuth
-- PostHog
-- Notification reminder jobs (due soon / overdue / upcoming events)
+- Magic link, Google OAuth, PostHog
+- Notification reminder jobs
 - Recurring task auto-spawn
-- Full server-side timezone conversion engine
-- OpenAPI
-- Playwright E2E suite
-- WebSockets / realtime infra
+- OpenAPI, Playwright E2E, WebSockets
 
-## Phase 2 — Home Management
+## Phase 2 — Household Finance
+
+**Status: Phase 2A–2E COMPLETE** (`2.0.0`–`2.4.0`)
+
+Financial source of truth for the household. Sensitive domain — family-scoped, no leakage into generic activity/notifications. See [ADR-010](./adr/010-household-finance-phase2a.md)–[ADR-014](./adr/014-finance-import-hardening-phase2e.md), and [modules/finance](./modules/finance/README.md).
+
+### Phase 2A — Manual Finance Foundation (COMPLETE · `2.0.0`)
+
+- Accounts, categories, manual transactions
+- Transfers (excluded from expense totals)
+- Balances, filtering, monthly summary, Finance dashboard
+
+### Phase 2B — Budgeting (COMPLETE · `2.1.0`)
+
+- Monthly household + category budgets
+- Progress / remaining / status from live expenses
+- Budgets page + overview integration (UI alerts; no notification jobs)
+
+### Phase 2C — Financial Intelligence (COMPLETE · `2.2.0`)
+
+- Trends, MoM, category share, recurring heuristics, anomalies
+- Deterministic insights (max 5) via `GET …/finance/analysis`
+- Finance Overview as intelligence surface (no AI)
+
+### Phase 2D — Automatic Transaction Capture (COMPLETE · `2.3.0`)
+
+- Email provider abstraction (SYNTHETIC + optional Gmail)
+- Deterministic parsers → `ImportCandidate` review queue
+- Confirm / edit / ignore → same `Transaction` ledger (`source = IMPORT`)
+- Manual bounded sync; no auto-confirm; no AI parsing yet
+
+### Phase 2E — Finance Import Hardening (COMPLETE · `2.4.0`)
+
+- Production Gmail connect/callback UX + signed OAuth state
+- Token refresh, disconnect revoke, sync pagination/retry/partial status
+- Mandiri + GoPay parsers; review UX + bulk ignore
+- Security/observability/tests/docs (ADR-014)
+
+## Phase 3 — Home Management
 
 Home profile, rooms, assets, maintenance, documents, knowledge hub, service contacts.
 
-## Phase 3 — Finance
+## Phase 4 — Smart Finance extensions
 
-Transactions, bills, budgets, savings, debt, insurance, investments, net worth.
-
-## Phase 4 — Smart Finance
-
-Email ingestion, transaction extraction, categorization, monthly reports, AI insights.
+Deeper automation and reporting building on Phase 2 (bills, goals, richer insights) — without replacing the Phase 2A ledger.
 
 ## Phase 5 — RUMA AI
 

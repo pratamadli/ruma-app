@@ -1,5 +1,5 @@
-// RUMA schema — Phase 0–1 (Family Workspace + household collaboration)
-// Canonical conventions: docs/DATABASE.md
+// RUMA schema — Phase 0–2A (Family Workspace + household collaboration + finance)
+// Canonical conventions: docs/DATABASE.md, docs/adr/010-household-finance-phase2a.md
 
 generator client {
   provider = "prisma-client-js"
@@ -50,6 +50,59 @@ enum TaskRecurrence {
   CUSTOM_WEEKDAYS
 }
 
+enum FinancialAccountType {
+  BANK
+  CASH
+  E_WALLET
+  CREDIT_CARD
+  OTHER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum CategoryKind {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionSource {
+  MANUAL
+  IMPORT
+}
+
+enum BudgetRecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EmailProviderKind {
+  SYNTHETIC
+  GMAIL
+}
+
+enum EmailConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum ImportCandidateStatus {
+  PENDING_REVIEW
+  CONFIRMED
+  IGNORED
+  FAILED
+}
+
+enum ImportConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
 model User {
   id           String   @id @db.Char(26)
   email        String   @unique
@@ -68,28 +121,41 @@ model User {
   assignedTasks        Task[]             @relation("TaskAssignee")
   createdGroceryLists  GroceryList[]
   assignedGroceryItems GroceryItem[]      @relation("GroceryItemAssignee")
-  createdEvents        FamilyEvent[]      @relation("EventCreator")
-  notifications        Notification[]
+  createdEvents            FamilyEvent[]      @relation("EventCreator")
+  notifications            Notification[]
+  ownedFinancialAccounts   FinancialAccount[] @relation("FinancialAccountOwner")
+  createdFinancialAccounts FinancialAccount[] @relation("FinancialAccountCreator")
+  createdTransactions      Transaction[]      @relation("TransactionCreator")
+  createdBudgets           Budget[]           @relation("BudgetCreator")
+  emailConnections         EmailConnection[]  @relation("EmailConnectionOwner")
+  reviewedImportCandidates ImportCandidate[]  @relation("ImportCandidateReviewer")
 
   @@map("users")
 }
 
 model Family {
-  id            String    @id @db.Char(26)
-  name          String
-  householdName String?   @map("household_name")
-  timezone      String    @default("UTC")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  id              String    @id @db.Char(26)
+  name            String
+  householdName   String?   @map("household_name")
+  timezone        String    @default("UTC")
+  defaultCurrency String    @default("IDR") @map("default_currency") @db.Char(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  memberships   FamilyMembership[]
-  invitations   FamilyInvitation[]
-  activities    FamilyActivity[]
-  tasks         Task[]
-  groceryLists  GroceryList[]
-  events        FamilyEvent[]
-  notifications Notification[]
+  memberships          FamilyMembership[]
+  invitations          FamilyInvitation[]
+  activities           FamilyActivity[]
+  tasks                Task[]
+  groceryLists         GroceryList[]
+  events               FamilyEvent[]
+  notifications        Notification[]
+  financialAccounts     FinancialAccount[]
+  transactionCategories  TransactionCategory[]
+  transactions          Transaction[]
+  budgets               Budget[]
+  emailConnections      EmailConnection[]
+  importCandidates      ImportCandidate[]
 
   @@map("families")
 }
@@ -278,4 +344,197 @@ model PasswordResetToken {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("password_reset_tokens")
+}
+
+/// Places money is held for a household (manual — no bank sync in Phase 2A).
+model FinancialAccount {
+  id                 String               @id @db.Char(26)
+  familyId           String               @map("family_id") @db.Char(26)
+  name               String
+  type               FinancialAccountType @default(BANK)
+  currency           String               @default("IDR") @db.Char(3)
+  /// Minor units (IDR: 1 = Rp 1). Never use floating point.
+  initialBalanceMinor BigInt              @default(0) @map("initial_balance_minor")
+  ownerUserId        String?              @map("owner_user_id") @db.Char(26)
+  isActive           Boolean              @default(true) @map("is_active")
+  createdById        String               @map("created_by_id") @db.Char(26)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?            @map("deleted_at") @db.Timestamptz(6)
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  owner     User?  @relation("FinancialAccountOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy User   @relation("FinancialAccountCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  transactionsAsAccount         Transaction[] @relation("TransactionAccount")
+  transactionsAsTransferAccount Transaction[] @relation("TransactionTransferAccount")
+
+  @@index([familyId, isActive])
+  @@index([familyId, deletedAt])
+  @@map("financial_accounts")
+}
+
+model TransactionCategory {
+  id        String      @id @db.Char(26)
+  familyId  String      @map("family_id") @db.Char(26)
+  name      String
+  kind      CategoryKind
+  isSystem  Boolean     @default(false) @map("is_system")
+  isActive  Boolean     @default(true) @map("is_active")
+  sortOrder Int         @default(0) @map("sort_order")
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family       Family        @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  transactions Transaction[]
+  budgetItems  BudgetItem[]
+
+  @@unique([familyId, name, kind])
+  @@index([familyId, kind, isActive])
+  @@map("transaction_categories")
+}
+
+/// Normalized household ledger entry (manual today; import/AI later via `source`).
+model Transaction {
+  id                 String            @id @db.Char(26)
+  familyId           String            @map("family_id") @db.Char(26)
+  type               TransactionType
+  /// Always positive minor units. Sign/direction comes from `type` (+ transfer accounts).
+  amountMinor        BigInt            @map("amount_minor")
+  currency           String            @default("IDR") @db.Char(3)
+  accountId          String            @map("account_id") @db.Char(26)
+  /// Destination account when `type = TRANSFER`.
+  transferAccountId  String?           @map("transfer_account_id") @db.Char(26)
+  categoryId         String?           @map("category_id") @db.Char(26)
+  description        String?
+  /// Calendar date — independent of browser timezone (ADR-010).
+  transactionDate    DateTime          @map("transaction_date") @db.Date
+  source             TransactionSource @default(MANUAL)
+  sourceReference    String?           @map("source_reference")
+  /// 0–100 optional confidence for future imports; unused for MANUAL.
+  confidence         Int?
+  createdById        String            @map("created_by_id") @db.Char(26)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  family          Family               @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  account         FinancialAccount     @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  transferAccount FinancialAccount?    @relation("TransactionTransferAccount", fields: [transferAccountId], references: [id], onDelete: Restrict)
+  category        TransactionCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy       User                 @relation("TransactionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([familyId, transactionDate(sort: Desc)])
+  @@index([familyId, type, transactionDate])
+  @@index([familyId, accountId, transactionDate])
+  @@index([familyId, categoryId, transactionDate])
+  @@index([familyId, deletedAt])
+  @@map("transactions")
+}
+
+/// Monthly household budget plan (Phase 2B). Spent is always derived from expenses.
+model Budget {
+  id               String             @id @db.Char(26)
+  familyId         String             @map("family_id") @db.Char(26)
+  /// Calendar month `YYYY-MM`.
+  periodMonth      String             @map("period_month") @db.Char(7)
+  currency         String             @default("IDR") @db.Char(3)
+  /// Optional household spending ceiling (minor units). Independent of item sum.
+  totalAmountMinor BigInt?            @map("total_amount_minor")
+  status           BudgetRecordStatus @default(ACTIVE)
+  createdById      String             @map("created_by_id") @db.Char(26)
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt       DateTime?          @map("archived_at") @db.Timestamptz(6)
+
+  family    Family      @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  createdBy User        @relation("BudgetCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  items     BudgetItem[]
+
+  @@unique([familyId, periodMonth])
+  @@index([familyId, status, periodMonth])
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id          String   @id @db.Char(26)
+  budgetId    String   @map("budget_id") @db.Char(26)
+  categoryId  String   @map("category_id") @db.Char(26)
+  amountMinor BigInt   @map("amount_minor")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  budget   Budget              @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([budgetId, categoryId])
+  @@index([categoryId])
+  @@map("budget_items")
+}
+
+/// Family-scoped mailbox connection (Gmail OAuth or SYNTHETIC demo).
+model EmailConnection {
+  id                    String                @id @db.Char(26)
+  familyId              String                @map("family_id") @db.Char(26)
+  provider              EmailProviderKind
+  status                EmailConnectionStatus @default(CONNECTED)
+  emailAddress          String                @map("email_address")
+  /// AES-GCM ciphertext (base64); null for SYNTHETIC.
+  accessTokenEncrypted  String?               @map("access_token_encrypted")
+  refreshTokenEncrypted String?               @map("refresh_token_encrypted")
+  tokenExpiresAt        DateTime?             @map("token_expires_at") @db.Timestamptz(6)
+  scopes                String?
+  connectedById         String                @map("connected_by_id") @db.Char(26)
+  lastSyncedAt          DateTime?             @map("last_synced_at") @db.Timestamptz(6)
+  lastError             String?               @map("last_error")
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family      Family           @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  connectedBy User             @relation("EmailConnectionOwner", fields: [connectedById], references: [id], onDelete: Restrict)
+  candidates  ImportCandidate[]
+
+  @@unique([familyId, provider, emailAddress])
+  @@index([familyId, status])
+  @@map("email_connections")
+}
+
+/// Parsed email awaiting confirm/ignore before becoming a Transaction.
+model ImportCandidate {
+  id                           String                @id @db.Char(26)
+  familyId                     String                @map("family_id") @db.Char(26)
+  connectionId                 String                @map("connection_id") @db.Char(26)
+  providerMessageId            String                @map("provider_message_id")
+  parserProvider               String                @map("parser_provider")
+  status                       ImportCandidateStatus @default(PENDING_REVIEW)
+  confidence                   ImportConfidence      @default(MEDIUM)
+  transactionType              TransactionType?      @map("transaction_type")
+  amountMinor                  BigInt?               @map("amount_minor")
+  currency                     String?               @db.Char(3)
+  transactionDate              DateTime?             @map("transaction_date") @db.Date
+  description                  String?
+  merchant                     String?
+  reference                    String?
+  accountHint                  String?               @map("account_hint")
+  categoryHint                 String?               @map("category_hint")
+  suggestedAccountId           String?               @map("suggested_account_id") @db.Char(26)
+  suggestedCategoryId          String?               @map("suggested_category_id") @db.Char(26)
+  suggestedTransferAccountId   String?               @map("suggested_transfer_account_id") @db.Char(26)
+  fingerprint                  String?
+  possibleDuplicateTransactionId String?             @map("possible_duplicate_transaction_id") @db.Char(26)
+  confirmedTransactionId       String?               @map("confirmed_transaction_id") @db.Char(26)
+  parseError                   String?               @map("parse_error")
+  reviewedById                 String?               @map("reviewed_by_id") @db.Char(26)
+  reviewedAt                   DateTime?             @map("reviewed_at") @db.Timestamptz(6)
+  createdAt                    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  family     Family          @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  connection EmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  reviewedBy User?           @relation("ImportCandidateReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, providerMessageId])
+  @@index([familyId, status, createdAt(sort: Desc)])
+  @@index([familyId, fingerprint])
+  @@map("import_candidates")
 }

@@ -217,3 +217,329 @@ export type HouseholdDashboardResponse = {
   todayTasks: TaskResponse[];
   upcomingEvents: FamilyEventResponse[];
 };
+
+/** Minor-unit money as decimal string — never a JS number. */
+export type MoneyMinorString = string;
+
+export type FinancialAccountType = 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type CategoryKind = 'INCOME' | 'EXPENSE';
+export type TransactionSource = 'MANUAL' | 'IMPORT';
+
+export type FinancialAccountResponse = {
+  id: string;
+  familyId: string;
+  name: string;
+  type: FinancialAccountType;
+  currency: string;
+  initialBalanceMinor: MoneyMinorString;
+  /** Authoritative balance computed server-side. */
+  balanceMinor: MoneyMinorString;
+  ownerUserId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FinancialAccountListResponse = {
+  accounts: FinancialAccountResponse[];
+  currency: string;
+};
+
+export type TransactionCategoryResponse = {
+  id: string;
+  familyId: string;
+  name: string;
+  kind: CategoryKind;
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TransactionCategoryListResponse = {
+  categories: TransactionCategoryResponse[];
+};
+
+export type TransactionAccountRef = {
+  id: string;
+  name: string;
+  type: FinancialAccountType;
+};
+
+export type TransactionCategoryRef = {
+  id: string;
+  name: string;
+  kind: CategoryKind;
+};
+
+export type TransactionResponse = {
+  id: string;
+  familyId: string;
+  type: TransactionType;
+  amountMinor: MoneyMinorString;
+  currency: string;
+  account: TransactionAccountRef;
+  transferAccount: TransactionAccountRef | null;
+  category: TransactionCategoryRef | null;
+  description: string | null;
+  transactionDate: string;
+  source: TransactionSource;
+  /** e.g. `candidate:<id>` for email imports; never includes email bodies. */
+  sourceReference: string | null;
+  createdBy: TaskMemberRef;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TransactionListResponse = {
+  transactions: TransactionResponse[];
+};
+
+export type FinanceCategoryTotal = {
+  categoryId: string;
+  name: string;
+  amountMinor: MoneyMinorString;
+};
+
+export type FinanceSummaryResponse = {
+  month: string;
+  currency: string;
+  incomeMinor: MoneyMinorString;
+  expenseMinor: MoneyMinorString;
+  netCashFlowMinor: MoneyMinorString;
+  transferMinor: MoneyMinorString;
+  expensesByCategory: FinanceCategoryTotal[];
+  recentTransactions: TransactionResponse[];
+  accounts: FinancialAccountResponse[];
+  /** Present when an ACTIVE budget exists for the month. */
+  budget: BudgetProgressResponse | null;
+};
+
+export type BudgetRecordStatus = 'ACTIVE' | 'ARCHIVED';
+export type BudgetHealthStatus = 'ON_TRACK' | 'WARNING' | 'OVER_BUDGET';
+
+export type BudgetProgressMetrics = {
+  budgetMinor: MoneyMinorString;
+  spentMinor: MoneyMinorString;
+  remainingMinor: MoneyMinorString;
+  /** Percent of budget used; null when budget is zero. Not capped at 100. */
+  percentage: number | null;
+  status: BudgetHealthStatus;
+};
+
+export type BudgetItemProgressResponse = BudgetProgressMetrics & {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+};
+
+export type BudgetAlertResponse = {
+  categoryId: string | null;
+  categoryName: string | null;
+  status: BudgetHealthStatus;
+  message: string;
+};
+
+export type BudgetProgressResponse = {
+  id: string;
+  familyId: string;
+  periodMonth: string;
+  currency: string;
+  status: BudgetRecordStatus;
+  household: BudgetProgressMetrics | null;
+  items: BudgetItemProgressResponse[];
+  alerts: BudgetAlertResponse[];
+  /** All EXPENSE spending in the month (even without a household ceiling). */
+  expenseTotalMinor: MoneyMinorString;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BudgetMonthResponse = {
+  month: string;
+  currency: string;
+  expenseTotalMinor: MoneyMinorString;
+  budget: BudgetProgressResponse | null;
+};
+
+/** Phase 2C — deterministic financial intelligence (derived, not persisted). */
+export type FinanceMonthTotals = {
+  month: string;
+  incomeMinor: MoneyMinorString;
+  expenseMinor: MoneyMinorString;
+  netCashFlowMinor: MoneyMinorString;
+};
+
+export type MoneyDelta = {
+  currentMinor: MoneyMinorString;
+  previousMinor: MoneyMinorString;
+  differenceMinor: MoneyMinorString;
+  percentageChange: number | null;
+};
+
+export type MonthComparisonResponse = {
+  currentMonth: string;
+  previousMonth: string;
+  expenses: MoneyDelta;
+  income: MoneyDelta;
+  netCashFlow: MoneyDelta;
+};
+
+export type FinanceTopCategory = {
+  categoryId: string;
+  name: string;
+  amountMinor: MoneyMinorString;
+  percentageOfExpenses: number | null;
+};
+
+export type FinanceCategoryChange = {
+  categoryId: string;
+  name: string;
+  currentMinor: MoneyMinorString;
+  previousMinor: MoneyMinorString;
+  differenceMinor: MoneyMinorString;
+  percentageChange: number | null;
+};
+
+export type RecurringPatternResponse = {
+  label: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  typicalAmountMinor: MoneyMinorString;
+  occurrenceCount: number;
+  cadence: 'MONTHLY';
+  confidence: 'LIKELY';
+  firstSeen: string;
+  lastSeen: string;
+};
+
+export type FinanceInsightSeverity = 'INFO' | 'ATTENTION';
+
+export type FinanceInsightType =
+  | 'SPENDING_INCREASE'
+  | 'SPENDING_DECREASE'
+  | 'TOP_CATEGORY'
+  | 'CATEGORY_INCREASE'
+  | 'CATEGORY_SPIKE'
+  | 'MONTH_SPIKE'
+  | 'BUDGET_WARNING'
+  | 'OVER_BUDGET'
+  | 'RECURRING_PATTERN'
+  | 'LARGE_TRANSACTION'
+  | 'INSUFFICIENT_DATA';
+
+export type FinanceInsightResponse = {
+  type: FinanceInsightType | string;
+  severity: FinanceInsightSeverity;
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+};
+
+export type FinanceAnomalyResponse = {
+  type: 'LARGE_TRANSACTION' | 'CATEGORY_SPIKE' | 'MONTH_SPIKE' | string;
+  severity: FinanceInsightSeverity;
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+};
+
+export type FinanceAnalysisResponse = {
+  month: string;
+  currency: string;
+  monthsWithData: number;
+  summary: FinanceMonthTotals;
+  comparison: MonthComparisonResponse;
+  trend: FinanceMonthTotals[];
+  topCategories: FinanceTopCategory[];
+  categoryChanges: FinanceCategoryChange[];
+  budget: BudgetProgressResponse | null;
+  recurring: RecurringPatternResponse[];
+  anomalies: FinanceAnomalyResponse[];
+  insights: FinanceInsightResponse[];
+};
+
+export type EmailProviderKind = 'SYNTHETIC' | 'GMAIL';
+export type EmailConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
+export type ImportCandidateStatus = 'PENDING_REVIEW' | 'CONFIRMED' | 'IGNORED' | 'FAILED';
+export type ImportConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type EmailConnectionResponse = {
+  id: string;
+  familyId: string;
+  provider: EmailProviderKind | string;
+  status: EmailConnectionStatus | string;
+  emailAddress: string;
+  scopes: string | null;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  connectedById: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EmailConnectionListResponse = {
+  connections: EmailConnectionResponse[];
+  gmailConfigured: boolean;
+};
+
+export type ImportCandidateResponse = {
+  id: string;
+  familyId: string;
+  connectionId: string;
+  providerMessageId: string;
+  parserProvider: string;
+  status: ImportCandidateStatus | string;
+  confidence: ImportConfidence | string;
+  transactionType: TransactionType | null;
+  amountMinor: MoneyMinorString | null;
+  currency: string | null;
+  transactionDate: string | null;
+  description: string | null;
+  merchant: string | null;
+  reference: string | null;
+  accountHint: string | null;
+  categoryHint: string | null;
+  suggestedAccountId: string | null;
+  suggestedCategoryId: string | null;
+  suggestedTransferAccountId: string | null;
+  possibleDuplicateTransactionId: string | null;
+  confirmedTransactionId: string | null;
+  parseError: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ImportHistoryCounts = {
+  pendingReview: number;
+  confirmed: number;
+  ignored: number;
+  failed: number;
+};
+
+export type ImportCandidateListResponse = {
+  candidates: ImportCandidateResponse[];
+  history: ImportHistoryCounts;
+};
+
+export type ImportSyncResultResponse = {
+  connectionId: string;
+  lookbackDays: number;
+  messagesScanned: number;
+  candidatesCreated: number;
+  alreadyProcessed: number;
+  parseFailures: number;
+  skippedUnknown: number;
+  messageFetchFailures: number;
+  truncated: boolean;
+  status: 'COMPLETED' | 'PARTIAL' | string;
+};
+
+export type ConfirmImportResponse = {
+  candidate: ImportCandidateResponse;
+  transaction: TransactionResponse;
+};

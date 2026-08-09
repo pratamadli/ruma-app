@@ -1,6 +1,6 @@
 # RUMA — Product PRD
 
-## MVP (Phase 1 — implemented in product version `1.1.1`)
+## Phase 1 MVP (product version `1.1.x`)
 
 - Authentication
 - Family Workspace (create family, invite members, membership)
@@ -11,43 +11,64 @@
 - In-app Notifications (unread count, mark read)
 - Activity Feed
 
-## Version 1 — Home Management
+## Phase 2A — Household Finance (product version `2.0.0`)
 
-- Home Profile
-- Rooms
-- Assets
-- Maintenance
-- Documents
-- Notes
-- Knowledge Hub
+Approachable household money tracking — not accounting software.
+
+- Financial accounts (bank, cash, e-wallet, credit card)
+- Manual income / expense / transfer entry
+- Categories (seeded + custom; deactivate instead of hard delete)
+- Account balances (server-authoritative)
+- Transaction history with basic filters
+- Monthly summary + Finance dashboard (“how are we doing this month?”)
+- Privacy: no finance amounts in general activity/notifications
+
+## Phase 2B — Budgeting (product version `2.1.0`)
+
+- Monthly household spending ceiling (optional)
+- Category envelopes linked to existing expense categories
+- Progress, remaining, over-budget state (server-calculated)
+- Budgets page with month navigation + Finance overview summary
+- UI alerts only — no email/scheduled notification jobs
+
+## Phase 2C — Financial Intelligence (product version `2.2.0`)
+
+- Monthly spending / income / net trends
+- Month-over-month comparison
+- Top categories + share
+- Recurring pattern detection (heuristic, non-destructive)
+- Calm anomaly signals + deterministic insights
+- Finance Overview as the primary intelligence surface
+
+### Phase 2D — Automatic Transaction Capture (product version `2.3.0`)
+
+- Connect email (demo inbox / optional Gmail readonly)
+- Deterministic parse → review queue (confirm / edit / ignore)
+- Confirmed imports become normal ledger transactions
+- AI categorization deferred
+
+### Phase 2E — Finance Import Hardening (product version `2.4.0`)
+
+- Production Gmail consent + OAuth callback
+- Stronger sync reliability and import review UX
+- Additional Indonesian parsers (Mandiri, GoPay)
+
+## Phase 3 — Home Management
+
+- Home Profile, Rooms, Assets, Maintenance
+- Documents, Notes, Knowledge Hub
 - Technician/Service Contact Directory
 
-## Version 2 — Smart Finance
+## Later — Smart Finance extensions & Complete Product
 
-- Manual Transactions
-- Bills
-- Budget
-- Savings
-- Debt
-- Insurance
-- Investments
-- Net Worth
-- Email transaction parsing
-- AI categorization
-- Monthly AI financial report
-
-## Complete Product
-
-- Receipt OCR
-- Pantry
-- Family goals
-- Child/pet profiles
-- Travel
-- Subscriptions
-- Home timeline
-- AI household assistant
+- Bills, savings, debt, insurance, investments, net worth
+- Deeper automation and monthly AI financial reports
+- Receipt OCR, pantry, family goals, child/pet profiles, travel
+- Subscriptions, home timeline, AI household assistant
 - Admin and subscription platform
 
-## Service Marketplace Direction
+## Non-goals for current release
 
-Do not build booking initially. Maintain a trusted directory of service contacts. Booking can be considered later.
+- Bank API integrations
+- Investment / net-worth engines
+- Aggressive “you spent money” notifications

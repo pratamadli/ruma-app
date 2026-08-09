@@ -1,0 +1,16 @@
+---
+description: Household finance ledger + email import trust rules
+globs:
+  - apps/api/src/finance/**
+  - apps/web/src/app/app/f/**/finance/**
+  - docs/modules/finance/**
+---
+
+# Finance & import rules
+
+- The `Transaction` ledger is the only financial source of truth. Imports converge via `ImportCandidate` → confirm → `createLedgerTransaction(source=IMPORT)`.
+- Never auto-post imported transactions. Suggest → confirm remains the default.
+- Never store raw email bodies or OAuth tokens in API responses, logs, Activity, Notifications, or analytics.
+- OAuth tokens at rest require AES-256-GCM (`EMAIL_TOKEN_ENCRYPTION_KEY`). Gmail OAuth `state` must be signed and validated (CSRF).
+- Deterministic parsers only unless a future ADR explicitly allows AI candidates — AI output remains untrusted and must pass the same validation + confirm path.
+- Do not log amounts, merchants, email bodies, or tokens. Sync logs are operational counts only.

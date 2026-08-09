@@ -1,5 +1,11 @@
 import type {
   AuthTokensResponse,
+  BudgetMonthResponse,
+  BudgetProgressResponse,
+  ConfirmImportResponse,
+  EmailConnectionListResponse,
+  EmailConnectionResponse,
+  FinanceAnalysisResponse,
   FamilyActivityListResponse,
   FamilyEventListResponse,
   FamilyEventResponse,
@@ -8,14 +14,24 @@ import type {
   FamilyListResponse,
   FamilyMembersResponse,
   FamilyResponse,
+  FinancialAccountListResponse,
+  FinancialAccountResponse,
+  FinanceSummaryResponse,
   GroceryItemResponse,
   GroceryListResponse,
   HealthResponse,
   HouseholdDashboardResponse,
+  ImportCandidateListResponse,
+  ImportCandidateResponse,
+  ImportSyncResultResponse,
   InvitationPreviewResponse,
   NotificationListResponse,
   TaskListResponse,
   TaskResponse,
+  TransactionCategoryListResponse,
+  TransactionCategoryResponse,
+  TransactionListResponse,
+  TransactionResponse,
   UserResponse,
 } from '@ruma/types';
 
@@ -391,4 +407,378 @@ export function markNotificationRead(accessToken: string, notificationId: string
 
 export function markAllNotificationsRead(accessToken: string) {
   return apiFetch<{ ok: boolean }>('/notifications/read-all', { method: 'POST' }, { accessToken });
+}
+
+export function getFinanceSummary(accessToken: string, familyId: string, month?: string) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const qs = params.toString();
+  return apiFetch<FinanceSummaryResponse>(
+    `/families/${familyId}/finance/summary${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function listFinanceAccounts(accessToken: string, familyId: string) {
+  return apiFetch<FinancialAccountListResponse>(
+    `/families/${familyId}/finance/accounts`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceAccount(
+  accessToken: string,
+  familyId: string,
+  input: {
+    name: string;
+    type?: 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+    initialBalanceMinor?: string;
+    ownerUserId?: string | null;
+  },
+) {
+  return apiFetch<FinancialAccountResponse>(
+    `/families/${familyId}/finance/accounts`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceAccount(
+  accessToken: string,
+  familyId: string,
+  accountId: string,
+  input: {
+    name?: string;
+    type?: 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+    ownerUserId?: string | null;
+    isActive?: boolean;
+  },
+) {
+  return apiFetch<FinancialAccountResponse>(
+    `/families/${familyId}/finance/accounts/${accountId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function listFinanceCategories(accessToken: string, familyId: string) {
+  return apiFetch<TransactionCategoryListResponse>(
+    `/families/${familyId}/finance/categories`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceCategory(
+  accessToken: string,
+  familyId: string,
+  input: { name: string; kind: 'INCOME' | 'EXPENSE' },
+) {
+  return apiFetch<TransactionCategoryResponse>(
+    `/families/${familyId}/finance/categories`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceCategory(
+  accessToken: string,
+  familyId: string,
+  categoryId: string,
+  input: { name?: string; isActive?: boolean },
+) {
+  return apiFetch<TransactionCategoryResponse>(
+    `/families/${familyId}/finance/categories/${categoryId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function listFinanceTransactions(
+  accessToken: string,
+  familyId: string,
+  query: {
+    from?: string;
+    to?: string;
+    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    categoryId?: string;
+    accountId?: string;
+    q?: string;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  return apiFetch<TransactionListResponse>(
+    `/families/${familyId}/finance/transactions${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceTransaction(
+  accessToken: string,
+  familyId: string,
+  input: {
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor: string;
+    accountId: string;
+    transferAccountId?: string;
+    categoryId?: string | null;
+    description?: string;
+    transactionDate: string;
+  },
+) {
+  return apiFetch<TransactionResponse>(
+    `/families/${familyId}/finance/transactions`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceTransaction(
+  accessToken: string,
+  familyId: string,
+  transactionId: string,
+  input: {
+    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor?: string;
+    accountId?: string;
+    transferAccountId?: string | null;
+    categoryId?: string | null;
+    description?: string | null;
+    transactionDate?: string;
+  },
+) {
+  return apiFetch<TransactionResponse>(
+    `/families/${familyId}/finance/transactions/${transactionId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function deleteFinanceTransaction(
+  accessToken: string,
+  familyId: string,
+  transactionId: string,
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/transactions/${transactionId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function getFinanceBudget(accessToken: string, familyId: string, month?: string) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const qs = params.toString();
+  return apiFetch<BudgetMonthResponse>(
+    `/families/${familyId}/finance/budgets${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function createFinanceBudget(
+  accessToken: string,
+  familyId: string,
+  input: {
+    periodMonth: string;
+    totalAmountMinor?: string | null;
+    items?: Array<{ categoryId: string; amountMinor: string }>;
+  },
+) {
+  return apiFetch<BudgetProgressResponse>(
+    `/families/${familyId}/finance/budgets`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function updateFinanceBudget(
+  accessToken: string,
+  familyId: string,
+  budgetId: string,
+  input: {
+    totalAmountMinor?: string | null;
+    items?: Array<{ categoryId: string; amountMinor: string }>;
+    status?: 'ACTIVE' | 'ARCHIVED';
+  },
+) {
+  return apiFetch<BudgetProgressResponse>(
+    `/families/${familyId}/finance/budgets/${budgetId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function archiveFinanceBudget(accessToken: string, familyId: string, budgetId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/budgets/${budgetId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function getFinanceAnalysis(
+  accessToken: string,
+  familyId: string,
+  query: { month?: string; months?: number } = {},
+) {
+  const params = new URLSearchParams();
+  if (query.month) params.set('month', query.month);
+  if (query.months != null) params.set('months', String(query.months));
+  const qs = params.toString();
+  return apiFetch<FinanceAnalysisResponse>(
+    `/families/${familyId}/finance/analysis${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function listEmailConnections(accessToken: string, familyId: string) {
+  return apiFetch<EmailConnectionListResponse>(
+    `/families/${familyId}/integrations/email`,
+    {},
+    { accessToken },
+  );
+}
+
+export function connectSyntheticEmail(accessToken: string, familyId: string) {
+  return apiFetch<EmailConnectionResponse>(
+    `/families/${familyId}/integrations/email/synthetic`,
+    { method: 'POST', body: JSON.stringify({}) },
+    { accessToken },
+  );
+}
+
+export function getGmailAuthUrl(accessToken: string, familyId: string) {
+  return apiFetch<{ url: string; state: string }>(
+    `/families/${familyId}/integrations/email/gmail/auth-url`,
+    {},
+    { accessToken },
+  );
+}
+
+export function completeGmailOAuth(
+  accessToken: string,
+  familyId: string,
+  input: { code: string; state: string },
+) {
+  return apiFetch<EmailConnectionResponse>(
+    `/families/${familyId}/integrations/email/gmail`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function disconnectEmailConnection(
+  accessToken: string,
+  familyId: string,
+  connectionId: string,
+) {
+  return apiFetch<EmailConnectionResponse>(
+    `/families/${familyId}/integrations/email/${connectionId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+
+export function syncEmailImports(
+  accessToken: string,
+  familyId: string,
+  connectionId: string,
+  lookbackDays: 7 | 30 | 90,
+) {
+  return apiFetch<ImportSyncResultResponse>(
+    `/families/${familyId}/integrations/email/${connectionId}/sync`,
+    { method: 'POST', body: JSON.stringify({ lookbackDays }) },
+    { accessToken },
+  );
+}
+
+export function listFinanceImports(
+  accessToken: string,
+  familyId: string,
+  status?: 'PENDING_REVIEW' | 'CONFIRMED' | 'IGNORED' | 'FAILED',
+) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const qs = params.toString();
+  return apiFetch<ImportCandidateListResponse>(
+    `/families/${familyId}/finance/imports${qs ? `?${qs}` : ''}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function updateFinanceImport(
+  accessToken: string,
+  familyId: string,
+  candidateId: string,
+  input: {
+    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor?: string;
+    currency?: string;
+    transactionDate?: string;
+    description?: string | null;
+    merchant?: string | null;
+    accountId?: string | null;
+    categoryId?: string | null;
+    transferAccountId?: string | null;
+    categoryHint?: string | null;
+  },
+) {
+  return apiFetch<ImportCandidateResponse>(
+    `/families/${familyId}/finance/imports/${candidateId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function confirmFinanceImport(
+  accessToken: string,
+  familyId: string,
+  candidateId: string,
+  input: {
+    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amountMinor?: string;
+    currency?: string;
+    transactionDate?: string;
+    description?: string | null;
+    accountId?: string;
+    categoryId?: string | null;
+    transferAccountId?: string;
+  } = {},
+) {
+  return apiFetch<ConfirmImportResponse>(
+    `/families/${familyId}/finance/imports/${candidateId}/confirm`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
+export function ignoreFinanceImport(accessToken: string, familyId: string, candidateId: string) {
+  return apiFetch<ImportCandidateResponse>(
+    `/families/${familyId}/finance/imports/${candidateId}/ignore`,
+    { method: 'POST', body: JSON.stringify({}) },
+    { accessToken },
+  );
+}
+
+export function bulkIgnoreFinanceImports(
+  accessToken: string,
+  familyId: string,
+  candidateIds: string[],
+) {
+  return apiFetch<{ ignored: number; skipped: number }>(
+    `/families/${familyId}/finance/imports/bulk-ignore`,
+    { method: 'POST', body: JSON.stringify({ candidateIds }) },
+    { accessToken },
+  );
 }

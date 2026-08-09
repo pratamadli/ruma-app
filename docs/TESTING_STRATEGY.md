@@ -1,6 +1,6 @@
 # RUMA — Testing Strategy
 
-**Status:** Accepted through Phase 1 MVP
+**Status:** Accepted through Phase 2E Import Hardening
 
 ---
 
@@ -23,7 +23,7 @@ Do not pursue vanity coverage percentages. Prefer a small number of meaningful t
 
 ---
 
-## 3. What is covered (Phase 0 + Phase 1)
+## 3. What is covered (Phase 0–2A)
 
 Foundation:
 
@@ -37,15 +37,20 @@ Family + household collaboration (API integration):
 - Cross-family ID access denied (`family-isolation.test.ts`).
 - Tasks / grocery / calendar / notifications + isolation (`household-collaboration.test.ts`).
 - Password reset: unknown email, invalid/expired/reused token, success + session revoke (`password-reset.test.ts`).
+- Finance acceptance scenario + isolation + soft delete (`finance/finance.test.ts`): balances, transfer≠expense, stranger 404.
+- Budgeting plan vs actual + income/transfer exclusion + isolation (`finance/budget.test.ts`).
+- Intelligence: MoM/trends/recurring/isolation (`finance/intelligence/intelligence.test.ts`).
+- Import parsers (fixtures) + sync/dedupe/confirm/isolation/bulk-ignore/MEMBER connect forbid (`finance/imports/**/*.test.ts`).
+- OAuth state CSRF + token crypto unit tests (`oauth-state.test.ts`, `token-crypto.test.ts`).
 
-Integration tests that need DB require `DATABASE_URL` and clean up fixture users in `beforeAll`/`afterAll` (including notifications and household child tables).
+Integration tests that need DB require `DATABASE_URL` and clean up fixture users in `beforeAll`/`afterAll` (including notifications, household, and finance child tables).
 
 ---
 
 ## 4. What not to do yet
 
 - Hundreds of snapshot tests.
-- Full Playwright suite before Phase 2 UI stabilizes (manual MVP scenario remains the product check; ADR-009).
+- Full Playwright suite before Phase 2B+ UI stabilizes (manual finance acceptance scenario remains the product check; ADR-009).
 - Visual regression platform.
 - Load testing.
 

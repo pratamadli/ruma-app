@@ -81,6 +81,11 @@ export function AppShell({ children, familyId }: { children: React.ReactNode; fa
           active: Boolean(pathname?.includes('/calendar')),
         },
         {
+          href: `${base}/finance`,
+          label: 'Finance',
+          active: Boolean(pathname?.includes('/finance')),
+        },
+        {
           href: `${base}/members`,
           label: 'Family',
           active: Boolean(pathname?.includes('/members')),

@@ -11,6 +11,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { GroceryModule } from './grocery/grocery.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { HouseholdModule } from './household/household.module';
+import { FinanceModule } from './finance/finance.module';
 import { AuthGuard } from './auth/auth.guard';
 
 @Module({
@@ -30,6 +31,7 @@ import { AuthGuard } from './auth/auth.guard';
     GroceryModule,
     CalendarModule,
     HouseholdModule,
+    FinanceModule,
     HealthModule,
   ],
   providers: [
