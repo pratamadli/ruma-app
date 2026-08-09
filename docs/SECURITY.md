@@ -114,6 +114,7 @@ PII in logs should be minimized; prefer identifiers over emails in production lo
 - Never send financial details or email contents to analytics.
 - Preserve `source` / `source_reference` for imports; OAuth tokens encrypted at rest; no raw email body persistence; no PAN/CVV storage.
 - Connect/disconnect email: `OWNER`/`ADMIN` only. No scheduled finance notification jobs.
+- Gmail OAuth `state` is HMAC-signed with TTL (ADR-014); callback requires matching family/actor.
 - See [modules/finance/imports/SECURITY.md](./modules/finance/imports/SECURITY.md).
 
 ---

@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  bulkImportCandidatesSchema,
   completeGmailOAuthSchema,
   confirmImportCandidateSchema,
   connectSyntheticEmailSchema,
@@ -62,7 +63,7 @@ export class ImportController {
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodValidationPipe(completeGmailOAuthSchema)) body: unknown,
   ) {
-    return this.imports.completeGmailOAuth(familyId, user.id, (body as { code: string }).code);
+    return this.imports.completeGmailOAuth(familyId, user.id, body as never);
   }
 
   @Delete('integrations/email/:connectionId')
@@ -88,6 +89,16 @@ export class ImportController {
     @Query(new ZodValidationPipe(listImportCandidatesQuerySchema)) query: unknown,
   ) {
     return this.imports.listCandidates(familyId, query as never);
+  }
+
+  @Post('finance/imports/bulk-ignore')
+  @HttpCode(200)
+  bulkIgnore(
+    @Param('familyId') familyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(bulkImportCandidatesSchema)) body: unknown,
+  ) {
+    return this.imports.bulkIgnore(familyId, user.id, body as never);
   }
 
   @Get('finance/imports/:candidateId')

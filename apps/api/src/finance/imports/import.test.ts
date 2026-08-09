@@ -53,7 +53,9 @@ describe.runIf(hasDatabase)('Email import Phase 2D', () => {
       await prisma.transaction.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.transactionCategory.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.financialAccount.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.notification.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.familyActivity.deleteMany({ where: { familyId: { in: familyIds } } });
+      await prisma.familyInvitation.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.familyMembership.deleteMany({ where: { familyId: { in: familyIds } } });
       await prisma.family.deleteMany({ where: { id: { in: familyIds } } });
     }
@@ -135,9 +137,11 @@ describe.runIf(hasDatabase)('Email import Phase 2D', () => {
       .send({ lookbackDays: 30 })
       .expect(201);
 
-    expect(sync1.body.messagesScanned).toBeGreaterThanOrEqual(4);
-    expect(sync1.body.candidatesCreated).toBeGreaterThanOrEqual(3);
+    expect(sync1.body.messagesScanned).toBeGreaterThanOrEqual(8);
+    expect(sync1.body.candidatesCreated).toBeGreaterThanOrEqual(6);
     expect(sync1.body.parseFailures).toBeGreaterThanOrEqual(1);
+    expect(sync1.body.status).toBe('COMPLETED');
+    expect(sync1.body.messageFetchFailures).toBe(0);
 
     const sync2 = await request(server)
       .post(`/v1/families/${familyId}/integrations/email/${connectionId}/sync`)
@@ -214,5 +218,46 @@ describe.runIf(hasDatabase)('Email import Phase 2D', () => {
       .get(`/v1/families/${familyId}/finance/imports`)
       .set('Authorization', `Bearer ${tokenS}`)
       .expect(404);
+
+    const member = await request(server)
+      .post('/v1/auth/sign-up')
+      .send({
+        email: `member-import-${suffix}@example.com`,
+        password: 'password123',
+        name: 'Member',
+      })
+      .expect(201);
+    const invite = await request(server)
+      .post(`/v1/families/${familyId}/invitations`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: `member-import-${suffix}@example.com`, role: 'MEMBER' })
+      .expect(201);
+    const inviteToken = String(invite.body.inviteUrl).split('/invite/')[1];
+    await request(server)
+      .post(`/v1/invitations/${inviteToken}/accept`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(201);
+
+    await request(server)
+      .post(`/v1/families/${familyId}/integrations/email/synthetic`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .send({})
+      .expect(403);
+
+    const pendingAfter = await request(server)
+      .get(`/v1/families/${familyId}/finance/imports?status=PENDING_REVIEW`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const ignoreIds = (pendingAfter.body.candidates as Array<{ id: string }>)
+      .slice(0, 2)
+      .map((c) => c.id);
+    if (ignoreIds.length > 0) {
+      const bulk = await request(server)
+        .post(`/v1/families/${familyId}/finance/imports/bulk-ignore`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ candidateIds: ignoreIds })
+        .expect(200);
+      expect(bulk.body.ignored).toBe(ignoreIds.length);
+    }
   });
 });

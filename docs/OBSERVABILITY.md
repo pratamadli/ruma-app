@@ -40,7 +40,8 @@ When `NODE_ENV=production`, Nest uses a JSON logger (`JsonLogger`):
 - Disabled when DSN is unset (local/CI default).
 - `sendDefaultPii: false`; sensitive header/cookie/token keys scrubbed in `beforeSend`.
 - Finance/import keys also scrubbed (`amount`, `balance`, `account`, `transaction`, `email`, `merchant`, `candidate`, …) — ADR-010/013.
-- Import sync logs operational counts only (scanned/created/duplicates) — never bodies, amounts, or tokens.
+- Import sync logs operational counts only (`messagesScanned`, `candidatesCreated`, `alreadyProcessed`, `messageFetchFailures`, `truncated`, `status`) — never bodies, amounts, or tokens.
+- Sync failures capture scrubbed Sentry events with error codes only.
 - API captures unhandled exceptions and HTTP 5xx via the global exception filter.
 - Web initializes on client mount and reports `global-error` boundary failures.
 

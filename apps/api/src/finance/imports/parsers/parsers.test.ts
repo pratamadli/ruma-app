@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SYNTHETIC_FIXTURES } from '../fixtures/synthetic-fixtures';
 import { parseTransactionEmail } from './index';
 import { parseBcaEmail } from './bca.parser';
+import { parseGopayEmail } from './gopay.parser';
+import { parseMandiriEmail } from './mandiri.parser';
 import { parseSyntheticBankEmail } from './synthetic-bank.parser';
 
 describe('transaction email parsers', () => {
@@ -65,6 +67,23 @@ MERCHANT: Shop
     expect(parsed?.transactionType).toBe('EXPENSE');
     expect(parsed?.amountMinor).toBe(125000n);
     expect(parsed?.merchant).toBe('Cafe Demo');
+  });
+
+  it('parses Mandiri expense and income fixtures', () => {
+    const expense = SYNTHETIC_FIXTURES.find((m) => m.providerMessageId === 'mandiri-expense-001')!;
+    const income = SYNTHETIC_FIXTURES.find((m) => m.providerMessageId === 'mandiri-income-001')!;
+    expect(parseMandiriEmail(expense)?.amountMinor).toBe(85000n);
+    expect(parseMandiriEmail(expense)?.transactionType).toBe('EXPENSE');
+    expect(parseMandiriEmail(income)?.transactionType).toBe('INCOME');
+    expect(parseMandiriEmail(income)?.amountMinor).toBe(2500000n);
+  });
+
+  it('parses GoPay expense and top-up fixtures', () => {
+    const expense = SYNTHETIC_FIXTURES.find((m) => m.providerMessageId === 'gopay-expense-001')!;
+    const topup = SYNTHETIC_FIXTURES.find((m) => m.providerMessageId === 'gopay-topup-001')!;
+    expect(parseGopayEmail(expense)?.amountMinor).toBe(45000n);
+    expect(parseGopayEmail(expense)?.categoryHint).toBe('Transportation');
+    expect(parseGopayEmail(topup)?.transactionType).toBe('INCOME');
   });
 
   it('returns null for unrelated email', () => {

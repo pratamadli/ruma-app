@@ -534,6 +534,9 @@ export type ImportSyncResultResponse = {
   alreadyProcessed: number;
   parseFailures: number;
   skippedUnknown: number;
+  messageFetchFailures: number;
+  truncated: boolean;
+  status: 'COMPLETED' | 'PARTIAL' | string;
 };
 
 export type ConfirmImportResponse = {

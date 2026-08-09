@@ -14,6 +14,12 @@ export const connectSyntheticEmailSchema = z.object({
 
 export const completeGmailOAuthSchema = z.object({
   code: z.string().trim().min(1).max(2048),
+  /** HMAC-signed OAuth state from auth-url (CSRF protection). */
+  state: z.string().trim().min(1).max(4096),
+});
+
+export const bulkImportCandidatesSchema = z.object({
+  candidateIds: z.array(ulidLike).min(1).max(25),
 });
 
 export const importSyncSchema = z.object({
@@ -64,3 +70,4 @@ export type ImportSyncInput = z.infer<typeof importSyncSchema>;
 export type ListImportCandidatesQuery = z.infer<typeof listImportCandidatesQuerySchema>;
 export type UpdateImportCandidateInput = z.infer<typeof updateImportCandidateSchema>;
 export type ConfirmImportCandidateInput = z.infer<typeof confirmImportCandidateSchema>;
+export type BulkImportCandidatesInput = z.infer<typeof bulkImportCandidatesSchema>;

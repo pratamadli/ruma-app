@@ -22,7 +22,15 @@ export type ParsedEmailCandidate = {
   parseError: string | null;
 };
 
+export type ListMessagesResult = {
+  messages: RawEmailMessage[];
+  /** Message IDs listed but body fetch failed (partial sync). */
+  messageFetchFailures: number;
+  /** True when hard page/message cap stopped further listing. */
+  truncated: boolean;
+};
+
 export type EmailProvider = {
   kind: 'SYNTHETIC' | 'GMAIL';
-  listMessages(args: { lookbackDays: number; accessToken?: string }): Promise<RawEmailMessage[]>;
+  listMessages(args: { lookbackDays: number; accessToken?: string }): Promise<ListMessagesResult>;
 };

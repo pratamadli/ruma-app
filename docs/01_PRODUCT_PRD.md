@@ -47,6 +47,12 @@ Approachable household money tracking — not accounting software.
 - Confirmed imports become normal ledger transactions
 - AI categorization deferred
 
+### Phase 2E — Finance Import Hardening (product version `2.4.0`)
+
+- Production Gmail consent + OAuth callback
+- Stronger sync reliability and import review UX
+- Additional Indonesian parsers (Mandiri, GoPay)
+
 ## Phase 3 — Home Management
 
 - Home Profile, Rooms, Assets, Maintenance

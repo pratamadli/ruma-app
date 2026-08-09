@@ -15,6 +15,12 @@
 - Encrypted at rest with `EMAIL_TOKEN_ENCRYPTION_KEY` (AES-256-GCM)
 - Never returned in API responses
 - Never logged; scrubbed from Sentry (`email|token|message|body|merchant|reference|candidate|import|gmail|oauth`)
+- Access tokens refreshed via refresh token before sync when near expiry
+- Disconnect clears local credentials and best-effort revokes at Google
+
+## OAuth state (CSRF)
+
+HMAC-signed `state` with TTL; `code` + `state` required on callback; family/actor must match (ADR-014).
 
 ## Family access
 

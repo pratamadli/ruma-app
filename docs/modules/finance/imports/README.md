@@ -4,7 +4,7 @@ Automatic transaction capture from email — **suggest, then confirm**.
 
 ## Status
 
-**COMPLETE** · product version `2.3.0` · [ADR-013](../../../adr/013-email-transaction-import-phase2d.md)
+**COMPLETE** · product version `2.4.0` (2D+2E) · [ADR-013](../../../adr/013-email-transaction-import-phase2d.md) · [ADR-014](../../../adr/014-finance-import-hardening-phase2e.md)
 
 ## Principle
 
@@ -21,6 +21,7 @@ Never a parallel ledger. Confirmed candidates call the same finance creation pat
 - [DEDUPLICATION.md](./DEDUPLICATION.md)
 - [SECURITY.md](./SECURITY.md)
 - [API.md](./API.md)
+- [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md)
 
 ## In scope
 

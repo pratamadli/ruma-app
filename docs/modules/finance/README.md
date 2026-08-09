@@ -8,6 +8,7 @@ Household finance source of truth, budgeting, intelligence, and email import.
 - **Phase 2B** — Budgeting (`2.1.0`)
 - **Phase 2C** — Financial Intelligence (`2.2.0`)
 - **Phase 2D** — Automatic Transaction Capture (`2.3.0`)
+- **Phase 2E** — Finance Import Hardening (`2.4.0`)
 
 ## Scope
 

@@ -657,6 +657,26 @@ export function connectSyntheticEmail(accessToken: string, familyId: string) {
   );
 }
 
+export function getGmailAuthUrl(accessToken: string, familyId: string) {
+  return apiFetch<{ url: string; state: string }>(
+    `/families/${familyId}/integrations/email/gmail/auth-url`,
+    {},
+    { accessToken },
+  );
+}
+
+export function completeGmailOAuth(
+  accessToken: string,
+  familyId: string,
+  input: { code: string; state: string },
+) {
+  return apiFetch<EmailConnectionResponse>(
+    `/families/${familyId}/integrations/email/gmail`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
 export function disconnectEmailConnection(
   accessToken: string,
   familyId: string,
@@ -747,6 +767,18 @@ export function ignoreFinanceImport(accessToken: string, familyId: string, candi
   return apiFetch<ImportCandidateResponse>(
     `/families/${familyId}/finance/imports/${candidateId}/ignore`,
     { method: 'POST', body: JSON.stringify({}) },
+    { accessToken },
+  );
+}
+
+export function bulkIgnoreFinanceImports(
+  accessToken: string,
+  familyId: string,
+  candidateIds: string[],
+) {
+  return apiFetch<{ ignored: number; skipped: number }>(
+    `/families/${familyId}/finance/imports/bulk-ignore`,
+    { method: 'POST', body: JSON.stringify({ candidateIds }) },
     { accessToken },
   );
 }

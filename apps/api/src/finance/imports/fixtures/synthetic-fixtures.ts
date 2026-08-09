@@ -88,4 +88,51 @@ Date: ${todayYmd()}
 Merchant: Cafe Demo
 `.trim(),
   },
+  {
+    providerMessageId: 'mandiri-expense-001',
+    from: 'noreply@bankmandiri.co.id',
+    subject: 'Mandiri Transaction Notification',
+    receivedAt: daysAgo(1),
+    textBody: `
+Bank Mandiri
+Debit Rp85.000
+Date: ${todayYmd()}
+Merchant: Toko Demo
+`.trim(),
+  },
+  {
+    providerMessageId: 'mandiri-income-001',
+    from: 'noreply@bankmandiri.co.id',
+    subject: 'Dana Diterima',
+    receivedAt: daysAgo(2),
+    textBody: `
+Bank Mandiri
+Transfer masuk Rp2.500.000
+Date: ${todayYmd()}
+Pada: Employer Demo
+`.trim(),
+  },
+  {
+    providerMessageId: 'gopay-expense-001',
+    from: 'noreply@go-jek.com',
+    subject: 'GoPay Payment',
+    receivedAt: daysAgo(1),
+    textBody: `
+GoPay
+Paid to: Grab
+Amount: Rp45.000
+Date: ${todayYmd()}
+`.trim(),
+  },
+  {
+    providerMessageId: 'gopay-topup-001',
+    from: 'noreply@go-jek.com',
+    subject: 'GoPay Top Up',
+    receivedAt: daysAgo(3),
+    textBody: `
+GoPay
+Top up received Rp100.000
+Date: ${todayYmd()}
+`.trim(),
+  },
 ];

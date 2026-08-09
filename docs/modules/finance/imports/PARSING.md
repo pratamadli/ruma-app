@@ -24,6 +24,14 @@ REFERENCE: ...
 
 Recognizes `bca.co.id` / BCA subject/body patterns; extracts `Rp` amounts, dates, merchant lines.
 
+### Mandiri-style notification
+
+Recognizes `bankmandiri.co.id` / Mandiri patterns; debit/credit/transfer heuristics.
+
+### GoPay notification
+
+Recognizes GoPay / Gojek payment and top-up templates.
+
 ## Normalized fields
 
 `parserProvider`, `transactionType`, `amountMinor` (BIGINT), `currency`, `transactionDate`, `description`, `merchant`, `reference`, `accountHint`, `categoryHint`, `confidence`, `parseError`.

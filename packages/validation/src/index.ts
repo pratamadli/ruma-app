@@ -77,10 +77,12 @@ export {
   listImportCandidatesQuerySchema,
   updateImportCandidateSchema,
   confirmImportCandidateSchema,
+  bulkImportCandidatesSchema,
   type ConnectSyntheticEmailInput,
   type CompleteGmailOAuthInput,
   type ImportSyncInput,
   type ListImportCandidatesQuery,
   type UpdateImportCandidateInput,
   type ConfirmImportCandidateInput,
+  type BulkImportCandidatesInput,
 } from './imports';

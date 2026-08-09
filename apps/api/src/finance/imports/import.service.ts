@@ -1,5 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type {
+  BulkImportCandidatesInput,
+  CompleteGmailOAuthInput,
   ConfirmImportCandidateInput,
   ConnectSyntheticEmailInput,
   ImportSyncInput,
@@ -8,8 +11,10 @@ import type {
 } from '@ruma/validation';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createId } from '../../common/ids';
+import { captureException } from '../../observability/sentry';
 import { FinanceService } from '../finance.service';
 import { formatDateOnly, moneyToString, parseDateOnly } from '../money';
+import { createGmailOAuthState, verifyGmailOAuthState } from './oauth-state';
 import { parseTransactionEmail } from './parsers';
 import { GmailEmailProvider } from './providers/gmail.provider';
 import { SyntheticEmailProvider } from './providers/synthetic.provider';
@@ -86,18 +91,20 @@ export class ImportService {
   }
 
   getGmailAuthUrl(familyId: string, actorId: string) {
-    const state = Buffer.from(JSON.stringify({ familyId, actorId }), 'utf8').toString('base64url');
+    const state = createGmailOAuthState(familyId, actorId);
     return { url: GmailEmailProvider.authUrl(state), state };
   }
 
-  async completeGmailOAuth(familyId: string, actorId: string, code: string) {
+  async completeGmailOAuth(familyId: string, actorId: string, input: CompleteGmailOAuthInput) {
     if (!GmailEmailProvider.isConfigured()) {
       throw new BadRequestException({
         code: 'GMAIL_NOT_CONFIGURED',
         message: 'Gmail OAuth is not configured on this server.',
       });
     }
-    const tokens = await GmailEmailProvider.exchangeCode(code);
+    verifyGmailOAuthState(input.state, { familyId, actorId });
+
+    const tokens = await GmailEmailProvider.exchangeCode(input.code);
     const accessEnc = encryptToken(tokens.accessToken);
     const refreshEnc = tokens.refreshToken ? encryptToken(tokens.refreshToken) : null;
     if (!accessEnc) {
@@ -118,7 +125,8 @@ export class ImportService {
     const data = {
       status: 'CONNECTED' as const,
       accessTokenEncrypted: accessEnc,
-      refreshTokenEncrypted: refreshEnc,
+      // Preserve prior refresh token if Google did not return a new one.
+      refreshTokenEncrypted: refreshEnc ?? existing?.refreshTokenEncrypted ?? null,
       tokenExpiresAt: tokens.expiresAt,
       scopes: tokens.scopes,
       lastError: null,
@@ -137,11 +145,30 @@ export class ImportService {
           },
         });
 
+    this.logger.log(
+      JSON.stringify({
+        event: 'gmail_connected',
+        familyId,
+        connectionId: row.id,
+      }),
+    );
+
     return this.toConnectionResponse(row);
   }
 
   async disconnect(familyId: string, connectionId: string) {
     const connection = await this.requireConnection(familyId, connectionId);
+
+    // Best-effort provider revoke; always clear local credentials.
+    if (connection.provider === 'GMAIL') {
+      const token =
+        (connection.accessTokenEncrypted ? decryptToken(connection.accessTokenEncrypted) : null) ??
+        (connection.refreshTokenEncrypted ? decryptToken(connection.refreshTokenEncrypted) : null);
+      if (token) {
+        await GmailEmailProvider.revokeToken(token);
+      }
+    }
+
     const updated = await this.prisma.emailConnection.update({
       where: { id: connection.id },
       data: {
@@ -152,6 +179,16 @@ export class ImportService {
         lastError: null,
       },
     });
+
+    this.logger.log(
+      JSON.stringify({
+        event: 'email_disconnected',
+        familyId,
+        connectionId: connection.id,
+        provider: connection.provider,
+      }),
+    );
+
     return this.toConnectionResponse(updated);
   }
 
@@ -171,27 +208,26 @@ export class ImportService {
     let alreadyProcessed = 0;
     let parseFailures = 0;
     let skippedUnknown = 0;
+    let messageFetchFailures = 0;
+    let truncated = false;
 
     try {
       const provider = this.resolveProvider(connection.provider);
-      const accessToken =
-        connection.provider === 'GMAIL' && connection.accessTokenEncrypted
-          ? decryptToken(connection.accessTokenEncrypted)
-          : undefined;
-      if (connection.provider === 'GMAIL' && !accessToken) {
-        throw new BadRequestException({
-          code: 'GMAIL_AUTH_REQUIRED',
-          message: 'Gmail connection needs to be re-authorized.',
-        });
+      let accessToken: string | undefined;
+
+      if (connection.provider === 'GMAIL') {
+        accessToken = await this.resolveGmailAccessToken(connection);
       }
 
-      const messages = await provider.listMessages({
+      const listed = await provider.listMessages({
         lookbackDays,
-        accessToken: accessToken ?? undefined,
+        accessToken,
       });
-      messagesScanned = messages.length;
+      messagesScanned = listed.messages.length;
+      messageFetchFailures = listed.messageFetchFailures;
+      truncated = listed.truncated;
 
-      for (const message of messages) {
+      for (const message of listed.messages) {
         const existing = await this.prisma.importCandidate.findUnique({
           where: {
             connectionId_providerMessageId: {
@@ -211,20 +247,30 @@ export class ImportService {
           continue;
         }
 
-        const created = await this.createCandidateFromParse(
-          familyId,
-          connection.id,
-          message,
-          parsed,
-        );
-        if (created.status === 'FAILED') parseFailures += 1;
-        else candidatesCreated += 1;
+        try {
+          const created = await this.createCandidateFromParse(
+            familyId,
+            connection.id,
+            message,
+            parsed,
+          );
+          if (created.status === 'FAILED') parseFailures += 1;
+          else candidatesCreated += 1;
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            alreadyProcessed += 1;
+            continue;
+          }
+          throw error;
+        }
       }
 
       await this.prisma.emailConnection.update({
         where: { id: connection.id },
-        data: { lastSyncedAt: new Date(), lastError: null },
+        data: { lastSyncedAt: new Date(), lastError: null, status: 'CONNECTED' },
       });
+
+      const status = messageFetchFailures > 0 || truncated ? 'PARTIAL' : 'COMPLETED';
 
       this.logger.log(
         JSON.stringify({
@@ -239,6 +285,9 @@ export class ImportService {
           alreadyProcessed,
           parseFailures,
           skippedUnknown,
+          messageFetchFailures,
+          truncated,
+          status,
         }),
       );
 
@@ -250,26 +299,86 @@ export class ImportService {
         alreadyProcessed,
         parseFailures,
         skippedUnknown,
+        messageFetchFailures,
+        truncated,
+        status,
       };
     } catch (error) {
+      const response = error instanceof BadRequestException ? error.getResponse() : null;
+      const code =
+        typeof response === 'object' && response && 'code' in response
+          ? String((response as { code?: string }).code)
+          : 'UNKNOWN_ERROR';
       const message =
-        error instanceof BadRequestException
-          ? ((error.getResponse() as { message?: string })?.message ?? 'Sync failed')
+        typeof response === 'object' && response && 'message' in response
+          ? String((response as { message?: string }).message)
           : 'Sync failed';
+
+      const authFailure = code.includes('AUTH') || code === 'AUTHENTICATION_ERROR';
+
       await this.prisma.emailConnection.update({
         where: { id: connection.id },
         data: {
-          lastError: typeof message === 'string' ? message.slice(0, 200) : 'Sync failed',
-          status:
-            error instanceof BadRequestException &&
-            typeof error.getResponse() === 'object' &&
-            (error.getResponse() as { code?: string }).code?.startsWith('GMAIL_AUTH')
-              ? 'ERROR'
-              : connection.status,
+          lastError: message.slice(0, 200),
+          status: authFailure ? 'ERROR' : connection.status,
         },
       });
+
+      captureException(error, {
+        event: 'import_sync_failed',
+        familyId,
+        connectionId: connection.id,
+        code,
+      });
+
       throw error;
     }
+  }
+
+  private async resolveGmailAccessToken(connection: {
+    id: string;
+    accessTokenEncrypted: string | null;
+    refreshTokenEncrypted: string | null;
+    tokenExpiresAt: Date | null;
+  }): Promise<string> {
+    const access = connection.accessTokenEncrypted
+      ? decryptToken(connection.accessTokenEncrypted)
+      : null;
+    const refresh = connection.refreshTokenEncrypted
+      ? decryptToken(connection.refreshTokenEncrypted)
+      : null;
+
+    const expiresSoon =
+      connection.tokenExpiresAt != null &&
+      connection.tokenExpiresAt.getTime() < Date.now() + 60_000;
+
+    if (access && !expiresSoon) return access;
+
+    if (!refresh) {
+      throw new BadRequestException({
+        code: 'AUTHENTICATION_ERROR',
+        message: 'Gmail connection needs to be re-authorized.',
+      });
+    }
+
+    const refreshed = await GmailEmailProvider.refreshAccessToken(refresh);
+    const accessEnc = encryptToken(refreshed.accessToken);
+    if (!accessEnc) {
+      throw new BadRequestException({
+        code: 'TOKEN_ENCRYPTION_REQUIRED',
+        message: 'EMAIL_TOKEN_ENCRYPTION_KEY must be configured to connect Gmail.',
+      });
+    }
+    await this.prisma.emailConnection.update({
+      where: { id: connection.id },
+      data: {
+        accessTokenEncrypted: accessEnc,
+        tokenExpiresAt: refreshed.expiresAt,
+        lastError: null,
+        status: 'CONNECTED',
+      },
+    });
+    return refreshed.accessToken;
   }
 
   async listCandidates(familyId: string, query: ListImportCandidatesQuery) {
@@ -454,6 +563,33 @@ export class ImportService {
       },
     });
     return this.toCandidateResponse(updated);
+  }
+
+  /**
+   * Bulk ignore only — safe and reversible via future re-sync of ignored status.
+   * Bulk confirm is deferred (transfers / incomplete accounts are too risky).
+   */
+  async bulkIgnore(familyId: string, actorId: string, input: BulkImportCandidatesInput) {
+    const candidates = await this.prisma.importCandidate.findMany({
+      where: {
+        familyId,
+        id: { in: input.candidateIds },
+        status: { in: ['PENDING_REVIEW', 'FAILED'] },
+      },
+    });
+    const now = new Date();
+    await this.prisma.importCandidate.updateMany({
+      where: { id: { in: candidates.map((c) => c.id) } },
+      data: {
+        status: 'IGNORED',
+        reviewedById: actorId,
+        reviewedAt: now,
+      },
+    });
+    return {
+      ignored: candidates.length,
+      skipped: input.candidateIds.length - candidates.length,
+    };
   }
 
   private async createCandidateFromParse(
