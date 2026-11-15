@@ -5,8 +5,8 @@
 Implemented specification phases 0-6 on `feat/finance-platform`, branched from
 `dev`. With subsequent user approval, the implementation and Render/Neon
 deployment configuration were committed as `2471133` and pushed to that feature
-branch. No merge to `main` or PR was performed. The original implementation
-guide remains preserved and untracked.
+branch. The user subsequently approved promotion into `dev` and `main` for
+production. The original implementation guide remains preserved and untracked.
 
 RUMA remains a Household OS: the implementation extends the existing Finance
 module, Family aggregate, shared UI and ivory/charcoal/sage design. It does not
@@ -97,13 +97,15 @@ The [Render Blueprint](../render.yaml) and [deployment guide](./DEPLOYMENT.md)
 use the existing migration-before-start script and preserve all old data.
 The API/shared-package build and deployment-file formatting passed.
 
-Cloud deployment is **not live**: Render requested card verification while
-creating a Blueprint, and the user confirmed that verification remains blocked.
-No Render service was created and Vercel's API proxy was not changed. Neon
-provisioning also awaits access to the intended personal organization; the
-shared dashboard still showed a Vercel-managed organization with project
-creation disabled. Existing databases and the local Hermes runtime were not
-modified. Provider-side Blueprint validation and cloud smoke checks are pending.
+The initial Render attempt was blocked by card verification; no Render service
+was provisioned by the assistant. The user subsequently selected a Railway API
+with the new Neon database and approved merging into `dev` and `main`. The
+deployment guide and CD workflow now target Railway, with Render retained only
+as an alternative. Production runtime health remains **unverified**: publishing
+the branches does not prove that the API, database, Vercel proxy or local Hermes
+connector is live. Cloud smoke checks and connector activation remain separate
+steps. No existing database or local Hermes runtime was modified by this
+promotion preparation.
 
 ## Database deployment
 

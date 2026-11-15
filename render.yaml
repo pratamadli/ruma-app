@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    branch: feat/finance-platform
+    branch: main
     autoDeployTrigger: off
     buildCommand: >-
       npx --yes pnpm@10.33.4 install --frozen-lockfile --prod=false &&
