@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: ruma-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: off
+    buildCommand: >-
+      npx --yes pnpm@10.33.4 install --frozen-lockfile --prod=false &&
+      npx --yes pnpm@10.33.4 turbo run build --filter=@ruma/api...
+    startCommand: npx --yes pnpm@10.33.4 --filter @ruma/api start:prod
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: HERMES_SERVICE_TOKEN
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://ruma-app-web.vercel.app
+      - key: APP_URL
+        value: https://ruma-app-web.vercel.app
+      - key: FINANCE_JOBS_ENABLED
+        value: 'false'

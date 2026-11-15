@@ -7,6 +7,7 @@ import { Button, Card, CardDescription, CardTitle, Input, Label, Select } from '
 import { AppShell } from '@/components/app-shell';
 import { BudgetProgressRow } from '@/components/budget-progress';
 import { FinanceSubnav } from '@/components/finance-subnav';
+import { FinanceScopePicker, useFinanceScope } from '@/components/finance-scope';
 import { useAuth } from '@/lib/auth-context';
 import {
   archiveFinanceBudget,
@@ -23,6 +24,7 @@ export default function FinanceBudgetsPage() {
   const params = useParams<{ familyId: string }>();
   const familyId = params.familyId;
   const { accessToken } = useAuth();
+  const { scope } = useFinanceScope();
   const queryClient = useQueryClient();
   const [month, setMonth] = useState(currentMonth());
   const [editing, setEditing] = useState(false);
@@ -30,11 +32,14 @@ export default function FinanceBudgetsPage() {
   const [items, setItems] = useState<DraftItem[]>([{ categoryId: '', amount: '' }]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [income, setIncome] = useState('0');
+  const [savings, setSavings] = useState('0');
+  const [investments, setInvestments] = useState('0');
 
   const budgetQuery = useQuery({
-    queryKey: ['finance-budget', familyId, month, accessToken],
+    queryKey: ['finance-budget', familyId, month, accessToken, scope],
     enabled: Boolean(accessToken && familyId),
-    queryFn: () => getFinanceBudget(accessToken!, familyId, month),
+    queryFn: () => getFinanceBudget(accessToken!, familyId, month, scope),
   });
   const categoriesQuery = useQuery({
     queryKey: ['finance-categories', familyId, accessToken],
@@ -51,6 +56,9 @@ export default function FinanceBudgetsPage() {
   const budget = budgetQuery.data?.budget ?? null;
 
   function startCreate() {
+    setIncome('0');
+    setSavings('0');
+    setInvestments('0');
     setTotalAmount('');
     setItems([{ categoryId: '', amount: '' }]);
     setEditing(true);
@@ -59,6 +67,9 @@ export default function FinanceBudgetsPage() {
 
   function startEdit() {
     if (!budget) return;
+    setIncome(budget.plannedIncomeMinor);
+    setSavings(budget.savingsAllocationMinor);
+    setInvestments(budget.investmentAllocationMinor);
     setTotalAmount(budget.household?.budgetMinor ?? '');
     setItems(
       budget.items.length > 0
@@ -75,6 +86,7 @@ export default function FinanceBudgetsPage() {
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ['finance-budget', familyId] });
     await queryClient.invalidateQueries({ queryKey: ['finance-summary', familyId] });
+    await queryClient.invalidateQueries({ queryKey: ['finance-analysis', familyId] });
   }
 
   async function onSave(event: React.FormEvent) {
@@ -88,6 +100,17 @@ export default function FinanceBudgetsPage() {
     }
 
     const parsedItems: Array<{ categoryId: string; amountMinor: string }> = [];
+    const plannedIncomeMinor = parseIdrInput(income);
+    const savingsAllocationMinor = parseIdrInput(savings);
+    const investmentAllocationMinor = parseIdrInput(investments);
+    if (
+      plannedIncomeMinor == null ||
+      savingsAllocationMinor == null ||
+      investmentAllocationMinor == null
+    ) {
+      setError('Enter valid income and allocation amounts.');
+      return;
+    }
     for (const item of items) {
       if (!item.categoryId && !item.amount.trim()) continue;
       if (!item.categoryId) {
@@ -112,12 +135,19 @@ export default function FinanceBudgetsPage() {
     try {
       if (budget) {
         await updateFinanceBudget(accessToken, familyId, budget.id, {
+          plannedIncomeMinor,
+          savingsAllocationMinor,
+          investmentAllocationMinor,
           totalAmountMinor: totalParsed,
           items: parsedItems,
           status: 'ACTIVE',
         });
       } else {
         await createFinanceBudget(accessToken, familyId, {
+          scope,
+          plannedIncomeMinor,
+          savingsAllocationMinor,
+          investmentAllocationMinor,
           periodMonth: month,
           totalAmountMinor: totalParsed,
           items: parsedItems,
@@ -135,9 +165,13 @@ export default function FinanceBudgetsPage() {
   async function onArchive() {
     if (!accessToken || !budget) return;
     if (!window.confirm('Archive this month’s budget? Transactions stay unchanged.')) return;
-    await archiveFinanceBudget(accessToken, familyId, budget.id);
-    setEditing(false);
-    await refresh();
+    try {
+      await archiveFinanceBudget(accessToken, familyId, budget.id);
+      setEditing(false);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to archive budget');
+    }
   }
 
   return (
@@ -151,6 +185,7 @@ export default function FinanceBudgetsPage() {
             </p>
           </div>
           <FinanceSubnav familyId={familyId} />
+          <FinanceScopePicker onChange={() => setEditing(false)} />
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
@@ -177,6 +212,11 @@ export default function FinanceBudgetsPage() {
             </button>
           </div>
         </header>
+        {error ? (
+          <p role="alert" className="text-[var(--ruma-color-danger)]">
+            {error}
+          </p>
+        ) : null}
 
         {budgetQuery.isLoading ? (
           <p className="text-[var(--ruma-color-ink-muted)]">Loading budget…</p>
@@ -185,8 +225,37 @@ export default function FinanceBudgetsPage() {
         ) : editing ? (
           <Card>
             <form className="grid gap-4" onSubmit={onSave}>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label htmlFor="plan-income">Planned income</Label>
+                  <Input
+                    id="plan-income"
+                    inputMode="numeric"
+                    value={income}
+                    onChange={(e) => setIncome(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="plan-savings">Savings allocation</Label>
+                  <Input
+                    id="plan-savings"
+                    inputMode="numeric"
+                    value={savings}
+                    onChange={(e) => setSavings(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="plan-investments">Investment allocation</Label>
+                  <Input
+                    id="plan-investments"
+                    inputMode="numeric"
+                    value={investments}
+                    onChange={(e) => setInvestments(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="grid gap-1.5 sm:max-w-xs">
-                <Label htmlFor="budget-total">Household budget (optional)</Label>
+                <Label htmlFor="budget-total">Spending budget (optional)</Label>
                 <Input
                   id="budget-total"
                   inputMode="numeric"
@@ -280,10 +349,24 @@ export default function FinanceBudgetsPage() {
                 This budget is archived. Edit to restore it for planning.
               </p>
             ) : null}
+            <Card>
+              <CardTitle>Monthly plan</CardTitle>
+              <p>
+                Income: {formatIdr(budget.plannedIncomeMinor)} · Savings:{' '}
+                {formatIdr(budget.savingsAllocationMinor)} · Investments:{' '}
+                {formatIdr(budget.investmentAllocationMinor)}
+              </p>
+              <p>Unallocated: {formatIdr(budget.unallocatedMinor)}</p>
+              <CardDescription>
+                Allocations do not create transactions or move money.
+              </CardDescription>
+            </Card>
 
             {budget.household ? (
               <section className="grid gap-2">
-                <h2 className="m-0 text-lg font-semibold">Household</h2>
+                <h2 className="m-0 text-lg font-semibold">
+                  {scope === 'PERSONAL' ? 'Personal' : 'Household'}
+                </h2>
                 <BudgetProgressRow
                   title="Total spending plan"
                   budgetMinor={budget.household.budgetMinor}
@@ -295,7 +378,9 @@ export default function FinanceBudgetsPage() {
               </section>
             ) : (
               <section className="grid gap-1">
-                <h2 className="m-0 text-lg font-semibold">Household</h2>
+                <h2 className="m-0 text-lg font-semibold">
+                  {scope === 'PERSONAL' ? 'Personal' : 'Household'}
+                </h2>
                 <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
                   No household ceiling — spent {formatIdr(budget.expenseTotalMinor)} this month.
                 </p>

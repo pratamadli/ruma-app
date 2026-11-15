@@ -78,6 +78,13 @@ Home profile, rooms, assets, maintenance, documents, knowledge hub, service cont
 
 Deeper automation and reporting building on Phase 2 (bills, goals, richer insights) — without replacing the Phase 2A ledger.
 
+The unreleased finance platform extension implements scoped personal/household
+finance, planning/goals, reviewed Telegram/Hermes and receipt capture, manual
+investments and scheduled Telegram reporting. See
+[implementation report](./finance-implementation-report.md). Live providers and
+jobs remain configuration-gated; this does not mark all broader Phase 4-6
+product pillars complete.
+
 ## Phase 5 — RUMA AI
 
 Household assistant, recommendations, smart reminders, predictions.

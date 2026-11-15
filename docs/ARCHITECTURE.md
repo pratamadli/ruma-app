@@ -78,6 +78,11 @@ Avoid creating packages until there is a second consumer. The set above is the m
 - PostgreSQL via Prisma migrations.
 - Production: Railway Postgres (no Docker in-repo; local = native Postgres).
 - Object storage later for documents (provider TBD).
+- Finance receipts currently use a private persistent API volume, not a public
+  upload directory. Finance automation remains inside the modular monolith;
+  PostgreSQL-backed draft/delivery state owns idempotency and privacy. See
+  [ADR-015](./adr/015-personal-household-finance.md) and
+  [finance automation](./modules/finance/AUTOMATION.md).
 
 ### Edge / hosting note
 

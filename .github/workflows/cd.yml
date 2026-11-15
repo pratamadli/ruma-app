@@ -33,7 +33,7 @@ jobs:
             echo "Add the secret, or rely on Railway GitHub auto-deploy."
             exit 0
           fi
-          curl -fsS -X POST "${RAILWAY_DEPLOY_HOOK_URL}"
+          curl -fsS -o /dev/null -X POST "${RAILWAY_DEPLOY_HOOK_URL}"
           echo "Railway deploy hook OK"
 
       - name: Trigger Vercel

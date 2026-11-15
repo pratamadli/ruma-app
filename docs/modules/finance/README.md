@@ -1,4 +1,14 @@
-# Finance module (Phase 2A–2D)
+# Finance module
+
+## Finance platform extension
+
+The existing web routes now share an explicit Personal/Household selector.
+Accounts, transaction history, dashboard totals and deterministic intelligence
+respect the selected scope. Transaction entry supports edits, void confirmation,
+date/payer filters and pagination. Account scope is immutable; use a new account
+instead of making private history public. Categories remain a shared taxonomy.
+See [the implementation plan](../../finance-implementation-plan.md) and
+[ADR-015](../../adr/015-personal-household-finance.md).
 
 Household finance source of truth, budgeting, intelligence, and email import.
 
@@ -12,15 +22,19 @@ Household finance source of truth, budgeting, intelligence, and email import.
 
 ## Scope
 
-| In scope                                 | Out of scope (later)         |
-| ---------------------------------------- | ---------------------------- |
-| Accounts (bank / cash / e-wallet / card) | AI categorize / AI reports   |
-| Categories (income / expense)            | Investments, net worth       |
-| Income, expense, transfer                | Bank APIs / Open Banking     |
-| Balances + monthly summary               | Scheduled email sync workers |
-| Monthly household + category budgets     | Auto-confirm imports         |
-| Deterministic trends / insights          |                              |
-| Email import → review → ledger           |                              |
+| In scope                                               | Out of scope (later)                        |
+| ------------------------------------------------------ | ------------------------------------------- |
+| Personal/household accounts and ledger                 | Bank APIs / Open Banking                    |
+| Shared category taxonomy                               | Multi-currency conversion                   |
+| Balances, monthly summaries and deterministic insights | Autonomous payments or investment execution |
+| Scoped budgets, allocations and manual goals           | Tax / realized-gain accounting              |
+| Email import and Telegram/Hermes draft review          | Scheduled email sync workers                |
+| Private receipt upload and configurable OCR review     | Telegram photo transport                    |
+| Manual investments and valuation snapshots             | Broker sync / live market prices            |
+| Scoped reminders and scheduled Telegram reports        | AI-generated financial advice               |
+
+Live provider configuration is required; see [AUTOMATION.md](./AUTOMATION.md) and the
+[implementation report](../../finance-implementation-report.md).
 
 ## Pattern
 
@@ -35,6 +49,7 @@ No finance/budget/insight/import amounts in household Activity or Notifications 
 - [DATA_MODEL.md](./DATA_MODEL.md)
 - [API.md](./API.md)
 - [SECURITY.md](./SECURITY.md)
+- [AUTOMATION.md](./AUTOMATION.md)
 - [budgeting/](./budgeting/README.md)
 - [intelligence/](./intelligence/README.md)
 - [imports/](./imports/README.md)

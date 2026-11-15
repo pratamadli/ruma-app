@@ -8,25 +8,62 @@ import { Card, CardDescription, CardTitle } from '@ruma/ui';
 import { AppShell } from '@/components/app-shell';
 import { BudgetProgressRow } from '@/components/budget-progress';
 import { FinanceSubnav } from '@/components/finance-subnav';
+import { FinanceScopePicker, useFinanceScope } from '@/components/finance-scope';
 import { useAuth } from '@/lib/auth-context';
-import { getFinanceAnalysis } from '@/lib/api';
+import {
+  getFinanceAnalysis,
+  getFinanceSummary,
+  listFinanceGoals,
+  listFinanceSchedules,
+  listInvestments,
+} from '@/lib/api';
 import { currentMonth, formatIdr, formatPercent, monthLabel, shiftMonth } from '@/lib/money';
 
 export default function FinanceDashboardPage() {
   const params = useParams<{ familyId: string }>();
   const familyId = params.familyId;
   const { accessToken } = useAuth();
+  const { scope } = useFinanceScope();
   const [month, setMonth] = useState(currentMonth());
 
   const analysisQuery = useQuery({
-    queryKey: ['finance-analysis', familyId, month, accessToken],
+    queryKey: ['finance-analysis', familyId, month, accessToken, scope],
     enabled: Boolean(accessToken && familyId),
-    queryFn: () => getFinanceAnalysis(accessToken!, familyId, { month, months: 6 }),
+    queryFn: () => getFinanceAnalysis(accessToken!, familyId, { month, months: 6, scope }),
+  });
+  const summaryQuery = useQuery({
+    queryKey: ['finance-summary', familyId, month, accessToken, scope],
+    enabled: Boolean(accessToken && familyId),
+    queryFn: () => getFinanceSummary(accessToken!, familyId, month, scope),
   });
 
+  const goalsQuery = useQuery({
+    queryKey: ['finance-goals', familyId, accessToken, scope],
+    enabled: Boolean(accessToken),
+    queryFn: () => listFinanceGoals(accessToken!, familyId, scope),
+  });
+  const schedulesQuery = useQuery({
+    queryKey: ['finance-schedules', familyId, accessToken, scope],
+    enabled: Boolean(accessToken),
+    queryFn: () => listFinanceSchedules(accessToken!, familyId, scope),
+  });
+  const investmentsQuery = useQuery({
+    queryKey: ['finance-investments', familyId, accessToken, scope],
+    enabled: Boolean(accessToken),
+    queryFn: () => listInvestments(accessToken!, familyId, scope),
+  });
   const analysis = analysisQuery.data;
   const budget = analysis?.budget ?? null;
   const expenseChange = analysis?.comparison.expenses;
+  const activeGoals = goalsQuery.data?.goals.filter((goal) => goal.status === 'ACTIVE');
+  const upcoming = schedulesQuery.data?.schedules
+    .filter(
+      (schedule) =>
+        schedule.enabled &&
+        (schedule.kind === 'MONTHLY_REPORT' ||
+          (schedule.dueAt && new Date(schedule.dueAt) >= new Date())),
+    )
+    .slice(0, 5);
 
   return (
     <AppShell familyId={familyId}>
@@ -36,7 +73,7 @@ export default function FinanceDashboardPage() {
             <div className="grid gap-1">
               <h1 className="m-0 text-3xl font-semibold tracking-tight">Finance</h1>
               <p className="m-0 text-[var(--ruma-color-ink-muted)]">
-                Understand where the household money went.
+                Understand where your {scope === 'PERSONAL' ? 'personal' : 'household'} money went.
               </p>
             </div>
             <Link
@@ -47,6 +84,7 @@ export default function FinanceDashboardPage() {
             </Link>
           </div>
           <FinanceSubnav familyId={familyId} />
+          <FinanceScopePicker />
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
@@ -67,6 +105,82 @@ export default function FinanceDashboardPage() {
             </button>
           </div>
         </header>
+
+        {summaryQuery.isError ? <p role="alert">{summaryQuery.error.message}</p> : null}
+        {summaryQuery.data ? (
+          <section className="grid gap-3 sm:grid-cols-2">
+            <Card>
+              <CardTitle>Accounts</CardTitle>
+              {summaryQuery.data.accounts.length === 0 ? (
+                <p>No accounts in this scope yet.</p>
+              ) : (
+                summaryQuery.data.accounts.map((account) => (
+                  <p key={account.id} className="flex justify-between gap-3">
+                    <span>{account.name}</span>
+                    <span>{formatIdr(account.balanceMinor)}</span>
+                  </p>
+                ))
+              )}
+            </Card>
+            <Card>
+              <CardTitle>Investment movements</CardTitle>
+              <p>Contributions: {formatIdr(summaryQuery.data.investmentBuyMinor)}</p>
+              <p>Withdrawals: {formatIdr(summaryQuery.data.investmentSellMinor)}</p>
+              <p>Dividends: {formatIdr(summaryQuery.data.dividendMinor)}</p>
+              <p>Investment fees: {formatIdr(summaryQuery.data.investmentFeesMinor)}</p>
+              {investmentsQuery.data ? (
+                <p>
+                  Latest manual valuations: {formatIdr(investmentsQuery.data.totalValuationMinor)}
+                </p>
+              ) : null}
+              <CardDescription>
+                Separate from ordinary income and consumption expenses.
+              </CardDescription>
+            </Card>
+            <Card>
+              <CardTitle>Recent transactions</CardTitle>
+              {summaryQuery.data.recentTransactions.length === 0 ? (
+                <p>No transactions yet.</p>
+              ) : (
+                summaryQuery.data.recentTransactions.map((txn) => (
+                  <p key={txn.id} className="flex justify-between gap-3">
+                    <span>
+                      {txn.description ?? txn.type} · {txn.transactionDate}
+                    </span>
+                    <span>{formatIdr(txn.amountMinor)}</span>
+                  </p>
+                ))
+              )}
+            </Card>
+            <Card>
+              <CardTitle>Savings goals</CardTitle>
+              {goalsQuery.isLoading ? <p>Loading goals...</p> : null}
+              {activeGoals?.map((goal) => (
+                <p key={goal.id}>
+                  {goal.name}: {formatIdr(goal.currentAmountMinor)} /{' '}
+                  {formatIdr(goal.targetAmountMinor)}
+                </p>
+              ))}
+              {activeGoals?.length === 0 ? <p>No active goals in this scope yet.</p> : null}
+            </Card>
+            <Card>
+              <CardTitle>Upcoming reminders</CardTitle>
+              {schedulesQuery.isLoading ? <p>Loading reminders...</p> : null}
+              {upcoming?.map((schedule) => (
+                <p key={schedule.id}>
+                  {schedule.title} ·{' '}
+                  {schedule.kind === 'MONTHLY_REPORT'
+                    ? 'Monthly report'
+                    : new Date(schedule.dueAt!).toLocaleDateString()}
+                </p>
+              ))}
+              {upcoming?.length === 0 ? <p>No upcoming reminders.</p> : null}
+            </Card>
+          </section>
+        ) : null}
+        {goalsQuery.isError || schedulesQuery.isError || investmentsQuery.isError ? (
+          <p role="alert">Unable to load goals, reminders or valuations. Please retry.</p>
+        ) : null}
 
         {analysisQuery.isLoading ? (
           <p className="text-[var(--ruma-color-ink-muted)]">Loading finance…</p>
@@ -121,7 +235,7 @@ export default function FinanceDashboardPage() {
                   </Link>
                 </div>
                 <BudgetProgressRow
-                  title="Household"
+                  title={scope === 'PERSONAL' ? 'Personal' : 'Household'}
                   budgetMinor={budget.household.budgetMinor}
                   spentMinor={budget.household.spentMinor}
                   remainingMinor={budget.household.remainingMinor}

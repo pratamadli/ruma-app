@@ -6,6 +6,28 @@
 **ORM:** Prisma  
 **Related:** `docs/05_DATABASE.md` (index), `SECURITY.md`, `DOMAIN_MODEL.md`
 
+## Finance platform extension
+
+See [ADR-015](./adr/015-personal-household-finance.md). Accounts and transactions
+have explicit `FinanceScope`; existing rows default to HOUSEHOLD. Personal rows
+require an owner, independently of payer. Transaction idempotency is unique within
+the family. Private `finance_audits` store actor/action/resource identifiers, not
+financial payloads. No history is deleted or inferred private during migration.
+
+Apply with `pnpm --filter @ruma/api exec prisma migrate deploy`, then regenerate
+the client using `pnpm --filter @ruma/api exec prisma generate`.
+
+Scoped budgets retain the legacy household-month uniqueness through a partial
+unique index, with a separate owner/month unique index for personal plans.
+`finance_goals` stores manually maintained targets/progress independently of the
+ledger; neither plan edits nor goal edits mutate transactions.
+
+The remaining additive migrations introduce private drafts/Telegram links,
+receipts, manual investment positions/dated valuations, and schedules/delivery
+claims. Review [the finance data model](./modules/finance/DATA_MODEL.md) before
+changing scope/owner constraints or partial unique indexes. Back up both the
+database and private receipt volume before migration/deployment.
+
 ---
 
 ## 1. Principles

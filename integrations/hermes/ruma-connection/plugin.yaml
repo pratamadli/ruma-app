@@ -1,0 +1,3 @@
+name: ruma-connection
+version: 1.0.0
+description: Connect a private Telegram sender to a verified RUMA household using a one-time code.
