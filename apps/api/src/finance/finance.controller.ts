@@ -17,6 +17,7 @@ import {
   createTransactionSchema,
   financeAnalysisQuerySchema,
   financeSummaryQuerySchema,
+  financeScopeQuerySchema,
   getBudgetQuerySchema,
   listTransactionsQuerySchema,
   updateBudgetSchema,
@@ -31,6 +32,7 @@ import { FamilyMemberGuard } from '../families/family-member.guard';
 import { BudgetService } from './budget.service';
 import { FinanceService } from './finance.service';
 import { IntelligenceService } from './intelligence/intelligence.service';
+import type { z } from 'zod';
 
 @Controller('families/:familyId/finance')
 @UseGuards(FamilyMemberGuard)
@@ -42,8 +44,13 @@ export class FinanceController {
   ) {}
 
   @Get('accounts')
-  listAccounts(@Param('familyId') familyId: string) {
-    return this.finance.listAccounts(familyId);
+  listAccounts(
+    @Param('familyId') familyId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodValidationPipe(financeScopeQuerySchema))
+    query: z.infer<typeof financeScopeQuerySchema>,
+  ) {
+    return this.finance.listAccounts(familyId, user.id, query.scope);
   }
 
   @Post('accounts')
@@ -57,11 +64,12 @@ export class FinanceController {
 
   @Patch('accounts/:accountId')
   updateAccount(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Param('accountId') accountId: string,
     @Body(new ZodValidationPipe(updateFinancialAccountSchema)) body: unknown,
   ) {
-    return this.finance.updateAccount(familyId, accountId, body as never);
+    return this.finance.updateAccount(familyId, accountId, body as never, user.id);
   }
 
   @Get('categories')
@@ -71,27 +79,30 @@ export class FinanceController {
 
   @Post('categories')
   createCategory(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Body(new ZodValidationPipe(createTransactionCategorySchema)) body: unknown,
   ) {
-    return this.finance.createCategory(familyId, body as never);
+    return this.finance.createCategory(familyId, body as never, user.id);
   }
 
   @Patch('categories/:categoryId')
   updateCategory(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Param('categoryId') categoryId: string,
     @Body(new ZodValidationPipe(updateTransactionCategorySchema)) body: unknown,
   ) {
-    return this.finance.updateCategory(familyId, categoryId, body as never);
+    return this.finance.updateCategory(familyId, categoryId, body as never, user.id);
   }
 
   @Get('transactions')
   listTransactions(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Query(new ZodValidationPipe(listTransactionsQuerySchema)) query: unknown,
   ) {
-    return this.finance.listTransactions(familyId, query as never);
+    return this.finance.listTransactions(familyId, query as never, user.id);
   }
 
   @Post('transactions')
@@ -105,44 +116,49 @@ export class FinanceController {
 
   @Get('transactions/:transactionId')
   getTransaction(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Param('transactionId') transactionId: string,
   ) {
-    return this.finance.getTransaction(familyId, transactionId);
+    return this.finance.getTransaction(familyId, transactionId, user.id);
   }
 
   @Patch('transactions/:transactionId')
   updateTransaction(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Param('transactionId') transactionId: string,
     @Body(new ZodValidationPipe(updateTransactionSchema)) body: unknown,
   ) {
-    return this.finance.updateTransaction(familyId, transactionId, body as never);
+    return this.finance.updateTransaction(familyId, transactionId, body as never, user.id);
   }
 
   @Delete('transactions/:transactionId')
   @HttpCode(200)
   deleteTransaction(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Param('transactionId') transactionId: string,
   ) {
-    return this.finance.deleteTransaction(familyId, transactionId);
+    return this.finance.deleteTransaction(familyId, transactionId, user.id);
   }
 
   @Get('summary')
   getSummary(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Query(new ZodValidationPipe(financeSummaryQuerySchema)) query: unknown,
   ) {
-    return this.finance.getSummary(familyId, query as never);
+    return this.finance.getSummary(familyId, query as never, user.id);
   }
 
   @Get('budgets')
   getBudgetForMonth(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Query(new ZodValidationPipe(getBudgetQuerySchema)) query: unknown,
   ) {
-    return this.budgets.getForMonth(familyId, query as never);
+    return this.budgets.getForMonth(familyId, query as never, user.id);
   }
 
   @Post('budgets')
@@ -155,30 +171,40 @@ export class FinanceController {
   }
 
   @Get('budgets/:budgetId')
-  getBudget(@Param('familyId') familyId: string, @Param('budgetId') budgetId: string) {
-    return this.budgets.getById(familyId, budgetId);
+  getBudget(
+    @Param('familyId') familyId: string,
+    @Param('budgetId') budgetId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.budgets.getById(familyId, budgetId, user.id);
   }
 
   @Patch('budgets/:budgetId')
   updateBudget(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Param('budgetId') budgetId: string,
     @Body(new ZodValidationPipe(updateBudgetSchema)) body: unknown,
   ) {
-    return this.budgets.update(familyId, budgetId, body as never);
+    return this.budgets.update(familyId, budgetId, body as never, user.id);
   }
 
   @Delete('budgets/:budgetId')
   @HttpCode(200)
-  archiveBudget(@Param('familyId') familyId: string, @Param('budgetId') budgetId: string) {
-    return this.budgets.archive(familyId, budgetId);
+  archiveBudget(
+    @Param('familyId') familyId: string,
+    @Param('budgetId') budgetId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.budgets.archive(familyId, budgetId, user.id);
   }
 
   @Get('analysis')
   getAnalysis(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('familyId') familyId: string,
     @Query(new ZodValidationPipe(financeAnalysisQuerySchema)) query: unknown,
   ) {
-    return this.intelligence.getAnalysis(familyId, query as never);
+    return this.intelligence.getAnalysis(familyId, query as never, user.id);
   }
 }

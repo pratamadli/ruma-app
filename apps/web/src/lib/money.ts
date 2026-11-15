@@ -1,6 +1,8 @@
 /** Parse user-typed IDR amount (supports 150000 or 150.000) into minor-unit string. */
 export function parseIdrInput(raw: string): string | null {
-  const cleaned = raw.replace(/[^\d]/g, '');
+  const value = raw.trim();
+  if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)$/.test(value)) return null;
+  const cleaned = value.replaceAll('.', '');
   if (!cleaned) return null;
   if (!/^\d+$/.test(cleaned)) return null;
   if (cleaned.length > 15) return null;

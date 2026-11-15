@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Input, Label, Select } from '@ruma/ui';
-import type { TransactionType } from '@ruma/types';
+import type { TransactionResponse, TransactionType } from '@ruma/types';
 import { AppShell } from '@/components/app-shell';
 import { FinanceSubnav } from '@/components/finance-subnav';
+import { FinanceScopePicker, useFinanceScope } from '@/components/finance-scope';
 import { useAuth } from '@/lib/auth-context';
 import {
   createFinanceTransaction,
@@ -14,8 +15,22 @@ import {
   listFinanceAccounts,
   listFinanceCategories,
   listFinanceTransactions,
+  updateFinanceTransaction,
+  getFinanceTransaction,
+  downloadFinanceReceipt,
+  listMembers,
 } from '@/lib/api';
 import { formatIdr, parseIdrInput, todayDateOnly } from '@/lib/money';
+
+const TRANSACTION_TYPES: TransactionType[] = [
+  'EXPENSE',
+  'INCOME',
+  'TRANSFER',
+  'INVESTMENT_BUY',
+  'INVESTMENT_SELL',
+  'DIVIDEND',
+  'BALANCE_ADJUSTMENT',
+];
 
 export default function FinanceTransactionsPage() {
   return (
@@ -30,6 +45,7 @@ function FinanceTransactionsInner() {
   const familyId = params.familyId;
   const searchParams = useSearchParams();
   const { accessToken } = useAuth();
+  const { scope } = useFinanceScope();
   const queryClient = useQueryClient();
 
   const [showForm, setShowForm] = useState(searchParams.get('new') === '1');
@@ -46,11 +62,31 @@ function FinanceTransactionsInner() {
   const [q, setQ] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [payerUserId, setPayerUserId] = useState('');
+  const [filterPayer, setFilterPayer] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [direction, setDirection] = useState<'INCREASE' | 'DECREASE'>('INCREASE');
+  const requestKey = useRef<string | null>(null);
+  const [instrument, setInstrument] = useState(''),
+    [units, setUnits] = useState(''),
+    [unitPrice, setUnitPrice] = useState(''),
+    [fees, setFees] = useState('0');
+  const trade = type === 'INVESTMENT_BUY' || type === 'INVESTMENT_SELL';
+  const movement = ['TRANSFER', 'INVESTMENT_BUY', 'INVESTMENT_SELL'].includes(type);
+
+  const membersQuery = useQuery({
+    queryKey: ['family-members', familyId, accessToken],
+    enabled: Boolean(accessToken && familyId),
+    queryFn: () => listMembers(accessToken!, familyId),
+  });
 
   const accountsQuery = useQuery({
-    queryKey: ['finance-accounts', familyId, accessToken],
+    queryKey: ['finance-accounts', familyId, accessToken, scope],
     enabled: Boolean(accessToken && familyId),
-    queryFn: () => listFinanceAccounts(accessToken!, familyId),
+    queryFn: () => listFinanceAccounts(accessToken!, familyId, scope),
   });
   const categoriesQuery = useQuery({
     queryKey: ['finance-categories', familyId, accessToken],
@@ -66,15 +102,32 @@ function FinanceTransactionsInner() {
       filterCategoryId,
       q,
       accessToken,
+      scope,
+      offset,
+      from,
+      to,
+      filterPayer,
     ],
     enabled: Boolean(accessToken && familyId),
     queryFn: () =>
       listFinanceTransactions(accessToken!, familyId, {
+        scope,
+        offset,
+        limit: 25,
+        from: from || undefined,
+        to: to || undefined,
+        payerUserId: filterPayer || undefined,
         type: filterType || undefined,
         accountId: filterAccountId || undefined,
         categoryId: filterCategoryId || undefined,
         q: q.trim() || undefined,
       }),
+  });
+
+  const detailQuery = useQuery({
+    queryKey: ['finance-transaction', familyId, editingId, accessToken, scope],
+    enabled: Boolean(accessToken && editingId),
+    queryFn: () => getFinanceTransaction(accessToken!, familyId, editingId!),
   });
 
   const activeAccounts = useMemo(
@@ -84,13 +137,18 @@ function FinanceTransactionsInner() {
   const categories = useMemo(() => {
     const all = categoriesQuery.data?.categories ?? [];
     if (type === 'TRANSFER') return [];
-    return all.filter((c) => c.isActive && c.kind === type);
+    const kind = ['INVESTMENT_BUY', 'INVESTMENT_SELL', 'DIVIDEND'].includes(type)
+      ? 'INVESTMENT'
+      : type;
+    return all.filter((c) => c.isActive && c.kind === kind);
   }, [categoriesQuery.data, type]);
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ['finance-transactions', familyId] });
     await queryClient.invalidateQueries({ queryKey: ['finance-summary', familyId] });
     await queryClient.invalidateQueries({ queryKey: ['finance-accounts', familyId] });
+    await queryClient.invalidateQueries({ queryKey: ['finance-analysis', familyId] });
+    await queryClient.invalidateQueries({ queryKey: ['finance-budget', familyId] });
   }
 
   async function onCreate(event: React.FormEvent) {
@@ -105,22 +163,49 @@ function FinanceTransactionsInner() {
       setError('Choose an account.');
       return;
     }
-    if (type === 'TRANSFER' && !transferAccountId) {
+    if (movement && !transferAccountId) {
       setError('Choose a destination account.');
       return;
     }
+    if (
+      !window.confirm(
+        `${editingId ? 'Update' : 'Save'} ${scope.toLowerCase()} ${type.toLowerCase().replaceAll('_', ' ')} of ${formatIdr(amountMinor)}?`,
+      )
+    )
+      return;
     setPending(true);
     setError(null);
     try {
-      await createFinanceTransaction(accessToken, familyId, {
+      const input = {
         type,
+        ...(trade
+          ? {
+              instrumentName: instrument || undefined,
+              unitsDecimal: units || undefined,
+              unitPriceMinor: unitPrice ? (parseIdrInput(unitPrice) ?? unitPrice) : undefined,
+              feesMinor: parseIdrInput(fees) ?? fees,
+            }
+          : {}),
         amountMinor,
         accountId,
-        transferAccountId: type === 'TRANSFER' ? transferAccountId : undefined,
+        transferAccountId: movement ? transferAccountId : undefined,
         categoryId: type === 'TRANSFER' ? null : categoryId || null,
         description: description.trim() || undefined,
         transactionDate,
-      });
+        payerUserId: scope === 'HOUSEHOLD' ? payerUserId || undefined : undefined,
+        adjustmentDirection: type === 'BALANCE_ADJUSTMENT' ? direction : undefined,
+      };
+      if (editingId) await updateFinanceTransaction(accessToken, familyId, editingId, input);
+      else {
+        requestKey.current ??= crypto.randomUUID();
+        await createFinanceTransaction(accessToken, familyId, {
+          ...input,
+          scope,
+          idempotencyKey: requestKey.current,
+        });
+      }
+      requestKey.current = null;
+      setEditingId(null);
       setAmount('');
       setDescription('');
       setShowForm(false);
@@ -135,8 +220,50 @@ function FinanceTransactionsInner() {
   async function onDelete(transactionId: string) {
     if (!accessToken) return;
     if (!window.confirm('Remove this transaction from your history?')) return;
-    await deleteFinanceTransaction(accessToken, familyId, transactionId);
-    await refresh();
+    try {
+      await deleteFinanceTransaction(accessToken, familyId, transactionId);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to void transaction');
+    }
+  }
+
+  function edit(txn: TransactionResponse) {
+    setEditingId(txn.id);
+    setType(txn.type);
+    setAmount(txn.amountMinor);
+    setAccountId(txn.account.id);
+    setTransferAccountId(txn.transferAccount?.id ?? '');
+    setCategoryId(txn.category?.id ?? '');
+    setDescription(txn.description ?? '');
+    setTransactionDate(txn.transactionDate);
+    setPayerUserId(txn.payerUserId ?? '');
+    setDirection(txn.adjustmentDirection === 'DECREASE' ? 'DECREASE' : 'INCREASE');
+    setInstrument(txn.instrumentName ?? '');
+    setUnits(txn.unitsDecimal ?? '');
+    setUnitPrice(txn.unitPriceMinor ?? '');
+    setFees(txn.feesMinor);
+    setShowForm(true);
+    setError(null);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setType('EXPENSE');
+    setAmount('');
+    setDescription('');
+    setAccountId('');
+    setTransferAccountId('');
+    setCategoryId('');
+    setPayerUserId('');
+    setTransactionDate(todayDateOnly());
+    setDirection('INCREASE');
+    setInstrument('');
+    setUnits('');
+    setUnitPrice('');
+    setFees('0');
+    setError(null);
+    requestKey.current = null;
   }
 
   const transactions = transactionsQuery.data?.transactions ?? [];
@@ -152,18 +279,63 @@ function FinanceTransactionsInner() {
                 Quick entry for income, spending, and transfers.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() => {
+                setShowForm((v) => !v);
+                resetForm();
+              }}
+            >
               {showForm ? 'Close' : 'Add transaction'}
             </Button>
           </div>
           <FinanceSubnav familyId={familyId} />
+          <FinanceScopePicker
+            onChange={() => {
+              resetForm();
+              setFilterAccountId('');
+              setFilterPayer('');
+              setOffset(0);
+              setShowForm(false);
+            }}
+          />
         </header>
+        {error ? (
+          <p role="alert" className="text-[var(--ruma-color-danger)]">
+            {error}
+          </p>
+        ) : null}
+        {accountsQuery.isError || categoriesQuery.isError || membersQuery.isError ? (
+          <p role="alert">Unable to load transaction form options. Please retry.</p>
+        ) : null}
 
         {showForm ? (
           <Card>
             <form className="grid gap-3" onSubmit={onCreate}>
+              {editingId && detailQuery.isLoading ? <p>Loading attachments...</p> : null}
+              {editingId && detailQuery.isError ? (
+                <p role="alert">Unable to load transaction attachments.</p>
+              ) : null}
+              {detailQuery.data?.receiptIds.map((id) => (
+                <Button
+                  key={id}
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    if (accessToken)
+                      void downloadFinanceReceipt(accessToken, familyId, id).catch((err: unknown) =>
+                        setError(
+                          err instanceof Error ? err.message : 'Unable to download receipt.',
+                        ),
+                      );
+                  }}
+                >
+                  Download receipt
+                </Button>
+              ))}
               <div className="grid grid-cols-3 gap-2">
-                {(['EXPENSE', 'INCOME', 'TRANSFER'] as TransactionType[]).map((item) => (
+                {TRANSACTION_TYPES.map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -178,7 +350,7 @@ function FinanceTransactionsInner() {
                       setCategoryId('');
                     }}
                   >
-                    {item === 'EXPENSE' ? 'Expense' : item === 'INCOME' ? 'Income' : 'Transfer'}
+                    {item.replaceAll('_', ' ').toLowerCase()}
                   </button>
                 ))}
               </div>
@@ -198,7 +370,7 @@ function FinanceTransactionsInner() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="txn-account">{type === 'TRANSFER' ? 'From' : 'Account'}</Label>
+                  <Label htmlFor="txn-account">{movement ? 'From' : 'Account'}</Label>
                   <Select
                     id="txn-account"
                     value={accountId}
@@ -213,7 +385,7 @@ function FinanceTransactionsInner() {
                     ))}
                   </Select>
                 </div>
-                {type === 'TRANSFER' ? (
+                {movement ? (
                   <div className="grid gap-1.5">
                     <Label htmlFor="txn-to">To</Label>
                     <Select
@@ -273,8 +445,74 @@ function FinanceTransactionsInner() {
                 </div>
               </div>
 
+              {scope === 'HOUSEHOLD' ? (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="txn-payer">{type === 'INCOME' ? 'Recipient' : 'Paid by'}</Label>
+                  <Select
+                    id="txn-payer"
+                    value={payerUserId}
+                    onChange={(e) => setPayerUserId(e.target.value)}
+                  >
+                    <option value="">You</option>
+                    {membersQuery.data?.members.map((member) => (
+                      <option key={member.userId} value={member.userId}>
+                        {member.name ?? member.email}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              ) : null}
+              {type === 'BALANCE_ADJUSTMENT' ? (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="txn-direction">Adjustment direction</Label>
+                  <Select
+                    id="txn-direction"
+                    value={direction}
+                    onChange={(e) =>
+                      setDirection(e.target.value === 'DECREASE' ? 'DECREASE' : 'INCREASE')
+                    }
+                  >
+                    <option value="INCREASE">Increase</option>
+                    <option value="DECREASE">Decrease</option>
+                  </Select>
+                </div>
+              ) : null}
+              {trade ? (
+                <fieldset className="grid gap-3 sm:grid-cols-2">
+                  <legend>Trade details (principal excludes fees)</legend>
+                  <div>
+                    <Label htmlFor="trade-instrument">Instrument (optional)</Label>
+                    <Input
+                      id="trade-instrument"
+                      value={instrument}
+                      onChange={(e) => setInstrument(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="trade-units">Quantity (optional, up to 8 decimals)</Label>
+                    <Input
+                      id="trade-units"
+                      value={units}
+                      onChange={(e) => setUnits(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="trade-price">Unit price in IDR</Label>
+                    <Input
+                      id="trade-price"
+                      value={unitPrice}
+                      onChange={(e) => setUnitPrice(e.target.value)}
+                      required={Boolean(units)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="trade-fees">Investment fees in IDR</Label>
+                    <Input id="trade-fees" value={fees} onChange={(e) => setFees(e.target.value)} />
+                  </div>
+                </fieldset>
+              ) : null}
               <Button type="submit" disabled={pending || activeAccounts.length === 0}>
-                {pending ? 'Saving…' : 'Save'}
+                {pending ? 'Saving…' : editingId ? 'Save changes' : 'Save'}
               </Button>
               {activeAccounts.length === 0 ? (
                 <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
@@ -293,17 +531,25 @@ function FinanceTransactionsInner() {
             <Select
               aria-label="Filter type"
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value as '' | TransactionType)}
+              onChange={(e) => {
+                setFilterType(e.target.value as '' | TransactionType);
+                setOffset(0);
+              }}
             >
               <option value="">All types</option>
-              <option value="EXPENSE">Expense</option>
-              <option value="INCOME">Income</option>
-              <option value="TRANSFER">Transfer</option>
+              {TRANSACTION_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value.replaceAll('_', ' ')}
+                </option>
+              ))}
             </Select>
             <Select
               aria-label="Filter account"
               value={filterAccountId}
-              onChange={(e) => setFilterAccountId(e.target.value)}
+              onChange={(e) => {
+                setFilterAccountId(e.target.value);
+                setOffset(0);
+              }}
             >
               <option value="">All accounts</option>
               {(accountsQuery.data?.accounts ?? []).map((account) => (
@@ -315,7 +561,10 @@ function FinanceTransactionsInner() {
             <Select
               aria-label="Filter category"
               value={filterCategoryId}
-              onChange={(e) => setFilterCategoryId(e.target.value)}
+              onChange={(e) => {
+                setFilterCategoryId(e.target.value);
+                setOffset(0);
+              }}
             >
               <option value="">All categories</option>
               {(categoriesQuery.data?.categories ?? []).map((category) => (
@@ -327,14 +576,56 @@ function FinanceTransactionsInner() {
             <Input
               aria-label="Search"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setOffset(0);
+              }}
               placeholder="Search notes"
             />
+            <Input
+              aria-label="From date"
+              type="date"
+              value={from}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                setOffset(0);
+              }}
+            />
+            <Input
+              aria-label="To date"
+              type="date"
+              value={to}
+              onChange={(e) => {
+                setTo(e.target.value);
+                setOffset(0);
+              }}
+            />
+            {scope === 'HOUSEHOLD' ? (
+              <Select
+                aria-label="Filter payer"
+                value={filterPayer}
+                onChange={(e) => {
+                  setFilterPayer(e.target.value);
+                  setOffset(0);
+                }}
+              >
+                <option value="">All payers</option>
+                {membersQuery.data?.members.map((member) => (
+                  <option key={member.userId} value={member.userId}>
+                    {member.name ?? member.email}
+                  </option>
+                ))}
+              </Select>
+            ) : null}
           </div>
         </Card>
 
         {transactionsQuery.isLoading ? (
           <p className="text-[var(--ruma-color-ink-muted)]">Loading transactions…</p>
+        ) : transactionsQuery.isError ? (
+          <p role="alert" className="text-[var(--ruma-color-danger)]">
+            {transactionsQuery.error.message}
+          </p>
         ) : transactions.length === 0 ? (
           <p className="m-0 text-[var(--ruma-color-ink-muted)]">No transactions match.</p>
         ) : (
@@ -355,6 +646,9 @@ function FinanceTransactionsInner() {
                   <div className="min-w-0">
                     <p className="m-0 truncate font-medium">{label}</p>
                     <p className="m-0 text-sm text-[var(--ruma-color-ink-muted)]">
+                      {txn.scope === 'PERSONAL'
+                        ? 'Personal · '
+                        : `Household · ${membersQuery.data?.members.find((m) => m.userId === txn.payerUserId)?.name ?? 'Member'} · `}
                       {txn.transactionDate}
                       {txn.category ? ` · ${txn.category.name}` : ''}
                       {txn.type === 'TRANSFER'
@@ -366,8 +660,11 @@ function FinanceTransactionsInner() {
                     <p className="m-0 shrink-0 tabular-nums">
                       {sign} {formatIdr(txn.amountMinor)}
                     </p>
+                    <Button size="sm" variant="ghost" onClick={() => edit(txn)}>
+                      Edit / details
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => void onDelete(txn.id)}>
-                      Delete
+                      Void
                     </Button>
                   </div>
                 </li>
@@ -375,6 +672,22 @@ function FinanceTransactionsInner() {
             })}
           </ul>
         )}
+        <div className="flex gap-2" aria-label="Transaction pages">
+          <Button
+            variant="ghost"
+            disabled={offset === 0 || transactionsQuery.isFetching}
+            onClick={() => setOffset(Math.max(0, offset - 25))}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={transactionsQuery.data?.nextOffset == null || transactionsQuery.isFetching}
+            onClick={() => setOffset(transactionsQuery.data?.nextOffset ?? offset)}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </AppShell>
   );

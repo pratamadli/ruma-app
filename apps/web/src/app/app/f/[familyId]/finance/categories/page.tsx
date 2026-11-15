@@ -48,8 +48,12 @@ export default function FinanceCategoriesPage() {
 
   async function toggleActive(categoryId: string, isActive: boolean) {
     if (!accessToken) return;
-    await updateFinanceCategory(accessToken, familyId, categoryId, { isActive: !isActive });
-    await refresh();
+    try {
+      await updateFinanceCategory(accessToken, familyId, categoryId, { isActive: !isActive });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update category');
+    }
   }
 
   const categories = categoriesQuery.data?.categories ?? [];
@@ -93,6 +97,7 @@ export default function FinanceCategoriesPage() {
               >
                 <option value="EXPENSE">Expense</option>
                 <option value="INCOME">Income</option>
+                <option value="INVESTMENT">Investment</option>
               </Select>
             </div>
             <Button type="submit" disabled={pending}>
@@ -106,6 +111,8 @@ export default function FinanceCategoriesPage() {
 
         {categoriesQuery.isLoading ? (
           <p className="text-[var(--ruma-color-ink-muted)]">Loading categories…</p>
+        ) : categoriesQuery.isError ? (
+          <p role="alert">{categoriesQuery.error.message}</p>
         ) : (
           <div className="grid gap-8 sm:grid-cols-2">
             <CategoryGroup
@@ -116,6 +123,11 @@ export default function FinanceCategoriesPage() {
             <CategoryGroup
               title="Income"
               items={income}
+              onToggle={(id, active) => void toggleActive(id, active)}
+            />
+            <CategoryGroup
+              title="Investments"
+              items={categories.filter((c) => c.kind === 'INVESTMENT')}
               onToggle={(id, active) => void toggleActive(id, active)}
             />
           </div>

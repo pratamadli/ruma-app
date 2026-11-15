@@ -13,6 +13,9 @@ import { shiftMonth } from '../budget-progress';
 import { currentUtcMonth, formatDateOnly, moneyToString, monthBounds } from '../money';
 import { averageBigInt, medianBigInt, moneyDiffString, percentChange, percentOf } from './percent';
 import { detectRecurringPatterns, type ExpenseForRecurring } from './recurring';
+import { requireFinanceMember, scopeWhere } from '../finance-access';
+
+type FinanceFilter = ReturnType<typeof scopeWhere>;
 
 @Injectable()
 export class IntelligenceService {
@@ -24,7 +27,10 @@ export class IntelligenceService {
   async getAnalysis(
     familyId: string,
     query: FinanceAnalysisQuery,
+    actorId: string,
   ): Promise<FinanceAnalysisResponse> {
+    await requireFinanceMember(this.prisma, familyId, actorId);
+    const filter = scopeWhere(familyId, actorId, query.scope);
     const family = await this.prisma.family.findFirst({
       where: { id: familyId, deletedAt: null },
     });
@@ -38,11 +44,11 @@ export class IntelligenceService {
     const previousMonth = shiftMonth(month, -1);
 
     const [trend, topCategories, categoryChanges, budget, expenseWindow] = await Promise.all([
-      this.buildTrend(familyId, trendMonths),
-      this.buildTopCategories(familyId, month),
-      this.buildCategoryChanges(familyId, month, previousMonth),
-      this.budgets.getActiveProgressForMonth(familyId, month),
-      this.loadExpenseWindow(familyId, shiftMonth(month, -(Math.max(monthsCount, 12) - 1)), month),
+      this.buildTrend(filter, trendMonths),
+      this.buildTopCategories(filter, month),
+      this.buildCategoryChanges(filter, month, previousMonth),
+      this.budgets.getActiveProgressForMonth(familyId, month, actorId, query.scope),
+      this.loadExpenseWindow(filter, shiftMonth(month, -(Math.max(monthsCount, 12) - 1)), month),
     ]);
 
     const current = trend.find((t) => t.month === month) ?? emptyTotals(month);
@@ -88,28 +94,29 @@ export class IntelligenceService {
     return months;
   }
 
-  private async buildTrend(familyId: string, months: string[]): Promise<FinanceMonthTotals[]> {
+  private async buildTrend(filter: FinanceFilter, months: string[]): Promise<FinanceMonthTotals[]> {
     const from = monthBounds(months[0]!).from;
     const to = monthBounds(months[months.length - 1]!).to;
 
     const rows = await this.prisma.transaction.findMany({
       where: {
-        familyId,
+        ...filter,
         deletedAt: null,
-        type: { in: ['INCOME', 'EXPENSE'] },
+        type: { in: ['INCOME', 'EXPENSE', 'DIVIDEND'] },
         transactionDate: { gte: from, lte: to },
       },
       select: { type: true, amountMinor: true, transactionDate: true },
     });
 
-    const map = new Map<string, { income: bigint; expense: bigint }>();
-    for (const m of months) map.set(m, { income: 0n, expense: 0n });
+    const map = new Map<string, { income: bigint; expense: bigint; dividend: bigint }>();
+    for (const m of months) map.set(m, { income: 0n, expense: 0n, dividend: 0n });
 
     for (const row of rows) {
       const key = formatDateOnly(row.transactionDate).slice(0, 7);
       const bucket = map.get(key);
       if (!bucket) continue;
       if (row.type === 'INCOME') bucket.income += row.amountMinor;
+      else if (row.type === 'DIVIDEND') bucket.dividend += row.amountMinor;
       else bucket.expense += row.amountMinor;
     }
 
@@ -119,17 +126,20 @@ export class IntelligenceService {
         month: m,
         incomeMinor: moneyToString(bucket.income),
         expenseMinor: moneyToString(bucket.expense),
-        netCashFlowMinor: moneyToString(bucket.income - bucket.expense),
+        netCashFlowMinor: moneyToString(bucket.income + bucket.dividend - bucket.expense),
       };
     });
   }
 
-  private async buildTopCategories(familyId: string, month: string): Promise<FinanceTopCategory[]> {
+  private async buildTopCategories(
+    filter: FinanceFilter,
+    month: string,
+  ): Promise<FinanceTopCategory[]> {
     const { from, to } = monthBounds(month);
     const rows = await this.prisma.transaction.groupBy({
       by: ['categoryId'],
       where: {
-        familyId,
+        ...filter,
         deletedAt: null,
         type: 'EXPENSE',
         transactionDate: { gte: from, lte: to },
@@ -173,13 +183,13 @@ export class IntelligenceService {
   }
 
   private async buildCategoryChanges(
-    familyId: string,
+    filter: FinanceFilter,
     month: string,
     previousMonth: string,
   ): Promise<FinanceAnalysisResponse['categoryChanges']> {
     const [current, previous] = await Promise.all([
-      this.categorySpendMap(familyId, month),
-      this.categorySpendMap(familyId, previousMonth),
+      this.categorySpendMap(filter, month),
+      this.categorySpendMap(filter, previousMonth),
     ]);
     const ids = new Set([...current.keys(), ...previous.keys()]);
     const categories = await this.prisma.transactionCategory.findMany({
@@ -209,12 +219,12 @@ export class IntelligenceService {
     );
   }
 
-  private async categorySpendMap(familyId: string, month: string) {
+  private async categorySpendMap(filter: FinanceFilter, month: string) {
     const { from, to } = monthBounds(month);
     const rows = await this.prisma.transaction.groupBy({
       by: ['categoryId'],
       where: {
-        familyId,
+        ...filter,
         deletedAt: null,
         type: 'EXPENSE',
         transactionDate: { gte: from, lte: to },
@@ -264,7 +274,7 @@ export class IntelligenceService {
   }
 
   private async loadExpenseWindow(
-    familyId: string,
+    filter: FinanceFilter,
     fromMonth: string,
     toMonth: string,
   ): Promise<ExpenseForRecurring[]> {
@@ -272,7 +282,7 @@ export class IntelligenceService {
     const to = monthBounds(toMonth).to;
     const rows = await this.prisma.transaction.findMany({
       where: {
-        familyId,
+        ...filter,
         deletedAt: null,
         type: 'EXPENSE',
         transactionDate: { gte: from, lte: to },

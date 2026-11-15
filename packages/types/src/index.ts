@@ -221,12 +221,22 @@ export type HouseholdDashboardResponse = {
 /** Minor-unit money as decimal string — never a JS number. */
 export type MoneyMinorString = string;
 
-export type FinancialAccountType = 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
-export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
-export type CategoryKind = 'INCOME' | 'EXPENSE';
-export type TransactionSource = 'MANUAL' | 'IMPORT';
+export type FinanceScope = 'PERSONAL' | 'HOUSEHOLD';
+export type FinancialAccountType =
+  'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER' | 'SAVINGS' | 'INVESTMENT';
+export type TransactionType =
+  | 'INCOME'
+  | 'EXPENSE'
+  | 'TRANSFER'
+  | 'INVESTMENT_BUY'
+  | 'INVESTMENT_SELL'
+  | 'DIVIDEND'
+  | 'BALANCE_ADJUSTMENT';
+export type CategoryKind = 'INCOME' | 'EXPENSE' | 'INVESTMENT';
+export type TransactionSource = 'MANUAL' | 'IMPORT' | 'TELEGRAM' | 'RECEIPT';
 
 export type FinancialAccountResponse = {
+  scope: FinanceScope;
   id: string;
   familyId: string;
   name: string;
@@ -275,6 +285,14 @@ export type TransactionCategoryRef = {
 };
 
 export type TransactionResponse = {
+  instrumentName: string | null;
+  unitsDecimal: string | null;
+  unitPriceMinor: string | null;
+  feesMinor: string;
+  scope: FinanceScope;
+  ownerUserId: string | null;
+  payerUserId: string | null;
+  adjustmentDirection: string | null;
   id: string;
   familyId: string;
   type: TransactionType;
@@ -295,6 +313,7 @@ export type TransactionResponse = {
 
 export type TransactionListResponse = {
   transactions: TransactionResponse[];
+  nextOffset: number | null;
 };
 
 export type FinanceCategoryTotal = {
@@ -304,6 +323,11 @@ export type FinanceCategoryTotal = {
 };
 
 export type FinanceSummaryResponse = {
+  investmentFeesMinor: MoneyMinorString;
+  scope: FinanceScope;
+  investmentBuyMinor: MoneyMinorString;
+  investmentSellMinor: MoneyMinorString;
+  dividendMinor: MoneyMinorString;
   month: string;
   currency: string;
   incomeMinor: MoneyMinorString;
@@ -343,6 +367,11 @@ export type BudgetAlertResponse = {
 };
 
 export type BudgetProgressResponse = {
+  scope: FinanceScope;
+  plannedIncomeMinor: MoneyMinorString;
+  savingsAllocationMinor: MoneyMinorString;
+  investmentAllocationMinor: MoneyMinorString;
+  unallocatedMinor: MoneyMinorString;
   id: string;
   familyId: string;
   periodMonth: string;
@@ -362,6 +391,102 @@ export type BudgetMonthResponse = {
   currency: string;
   expenseTotalMinor: MoneyMinorString;
   budget: BudgetProgressResponse | null;
+};
+
+export type FinanceGoalResponse = {
+  id: string;
+  scope: FinanceScope;
+  name: string;
+  targetAmountMinor: string;
+  currentAmountMinor: string;
+  targetDate: string | null;
+  status: string;
+};
+
+export type FinanceDraftPayload = {
+  instrumentName?: string;
+  unitsDecimal?: string;
+  unitPriceMinor?: string;
+  feesMinor?: string;
+  type: TransactionType;
+  amountMinor: string;
+  accountId: string;
+  transferAccountId?: string;
+  categoryId?: string | null;
+  description?: string;
+  transactionDate: string;
+  scope?: FinanceScope;
+  payerUserId?: string;
+  adjustmentDirection?: 'INCREASE' | 'DECREASE';
+};
+export type FinanceDraftResponse = {
+  id: string;
+  scope: FinanceScope;
+  payload: FinanceDraftPayload;
+  status: string;
+  expiresAt: string;
+  source: TransactionSource;
+};
+export type FinanceReceiptResponse = {
+  id: string;
+  scope: FinanceScope;
+  status: string;
+  errorCode: string | null;
+  transactionId?: string | null;
+  extraction: {
+    merchant?: string;
+    date?: string;
+    totalMinor?: string;
+    taxMinor?: string;
+    confidence?: number;
+    lineItems?: Array<{ description: string; amountMinor: string }>;
+  };
+};
+
+export type InvestmentPositionResponse = {
+  id: string;
+  scope: FinanceScope;
+  accountId: string;
+  instrumentName: string;
+  assetType: string;
+  unitsDecimal: string;
+  isActive: boolean;
+  valueMinor: string | null;
+  valuationDate: string | null;
+};
+export type FinanceScheduleResponse = {
+  id: string;
+  scope: FinanceScope;
+  kind: string;
+  title: string;
+  description: string | null;
+  dueAt: string | null;
+  timezone: string;
+  deliveryDay: number;
+  deliveryHour: number;
+  deliveryMinute: number;
+  recipientIds: string[];
+  enabled: boolean;
+  deliveries: Array<{
+    id: string;
+    recipientId: string;
+    status: string;
+    periodKey: string;
+    attempts: number;
+    errorCode: string | null;
+  }>;
+};
+export type FinanceScheduleRequest = {
+  scope: FinanceScope;
+  kind: 'REMINDER' | 'MONTHLY_REPORT';
+  title: string;
+  description?: string;
+  dueAt?: string;
+  timezone: string;
+  deliveryDay?: number;
+  deliveryHour?: number;
+  deliveryMinute?: number;
+  recipientIds?: string[];
 };
 
 /** Phase 2C — deterministic financial intelligence (derived, not persisted). */
@@ -542,4 +667,18 @@ export type ImportSyncResultResponse = {
 export type ConfirmImportResponse = {
   candidate: ImportCandidateResponse;
   transaction: TransactionResponse;
+};
+
+export type TelegramLinkStatusResponse = {
+  linked: boolean;
+  connectedElsewhere: boolean;
+  requiresReconnect: boolean;
+};
+
+export type TelegramLinkCodeResponse = {
+  code: string;
+  email: string;
+  expiresAt: string;
+  household: { id: string; name: string };
+  botUrl: string | null;
 };
