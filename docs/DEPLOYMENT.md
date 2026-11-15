@@ -49,6 +49,9 @@ at a production database.
 ## 2. Create the Neon database
 
 1. Create a **new project** on the Free plan, named `ruma`.
+   If the current organization is Vercel-managed and **New project** is disabled,
+   switch to a personal Neon organization or create the database through Vercel
+   Storage. Do not reuse another application's database.
 2. Prefer AWS Singapore (`ap-southeast-1`) alongside Render Singapore.
 3. Use PostgreSQL 16, the project's recommended production major version.
 4. Use the project's normal Postgres database/role; do not enable Neon Auth or
@@ -67,6 +70,11 @@ direct migration URL and validate it before scaling.
 ## 3. Deploy the Render API
 
 ### Blueprint (recommended)
+
+Render may require card verification even for a Free service. Complete that
+directly in the provider dashboard if acceptable; do not send card details to
+the assistant. If verification is blocked, stop provisioning rather than
+claiming the service is deployed.
 
 1. Connect GitHub with access to **only the required repository**.
 2. Create a Blueprint from `pratamadli/ruma-app`, branch

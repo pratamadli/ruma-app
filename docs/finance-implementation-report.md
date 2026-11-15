@@ -3,8 +3,10 @@
 ## Outcome
 
 Implemented specification phases 0-6 on `feat/finance-platform`, branched from
-`dev`. Changes are uncommitted; no push or PR was requested. The original
-implementation guide is preserved.
+`dev`. With subsequent user approval, the implementation and Render/Neon
+deployment configuration were committed as `2471133` and pushed to that feature
+branch. No merge to `main` or PR was performed. The original implementation
+guide remains preserved and untracked.
 
 RUMA remains a Household OS: the implementation extends the existing Finance
 module, Family aggregate, shared UI and ivory/charcoal/sage design. It does not
@@ -86,6 +88,22 @@ documented Railway hostname returned `Application not found` during diagnostics.
 Connection management alone does not install model-callable finance tools or a
 trusted confirmation-callback bridge. See [setup and multi-tenant runtime
 requirements](./modules/finance/AUTOMATION.md).
+
+## Render/Neon trial preparation
+
+The user selected a new empty Neon database, Render Free, and the existing
+Vercel frontend, with receipt uploads and scheduled jobs disabled for the trial.
+The [Render Blueprint](../render.yaml) and [deployment guide](./DEPLOYMENT.md)
+use the existing migration-before-start script and preserve all old data.
+The API/shared-package build and deployment-file formatting passed.
+
+Cloud deployment is **not live**: Render requested card verification while
+creating a Blueprint, and the user confirmed that verification remains blocked.
+No Render service was created and Vercel's API proxy was not changed. Neon
+provisioning also awaits access to the intended personal organization; the
+shared dashboard still showed a Vercel-managed organization with project
+creation disabled. Existing databases and the local Hermes runtime were not
+modified. Provider-side Blueprint validation and cloud smoke checks are pending.
 
 ## Database deployment
 
