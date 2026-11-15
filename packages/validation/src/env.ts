@@ -45,6 +45,27 @@ export const apiEnvSchema = z.object({
     .string()
     .regex(/^[0-9a-fA-F]{64}$/, 'EMAIL_TOKEN_ENCRYPTION_KEY must be 64 hex chars')
     .optional(),
+  HERMES_SERVICE_TOKEN: z.string().min(32).optional(),
+  FINANCE_RECEIPT_DIR: z.string().min(1).optional(),
+  FINANCE_JOBS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  OCR_PROVIDER_URL: z.string().url().startsWith('https://').optional(),
+  OCR_PROVIDER_TOKEN: z.string().min(20).optional(),
+  HERMES_INTENT_URL: z.string().url().startsWith('https://').optional(),
+  HERMES_INTENT_TOKEN: z.string().min(32).optional(),
+  TELEGRAM_BOT_TOKEN: z.string().min(20).optional(),
+  TELEGRAM_BOT_USERNAME: z
+    .string()
+    .regex(/^[A-Za-z][A-Za-z0-9_]{4,31}$/)
+    .optional(),
+  TELEGRAM_WEBHOOK_SECRET: z
+    .string()
+    .min(32)
+    .max(128)
+    .regex(/^[A-Za-z0-9_-]+$/)
+    .optional(),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

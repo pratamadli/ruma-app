@@ -599,7 +599,7 @@ export class ImportService {
     parsed: NonNullable<ReturnType<typeof parseTransactionEmail>>,
   ) {
     const accounts = await this.prisma.financialAccount.findMany({
-      where: { familyId, isActive: true },
+      where: { familyId, isActive: true, scope: 'HOUSEHOLD', deletedAt: null },
     });
     const categories = await this.prisma.transactionCategory.findMany({
       where: { familyId, isActive: true },
@@ -629,6 +629,7 @@ export class ImportService {
         where: {
           familyId,
           deletedAt: null,
+          scope: 'HOUSEHOLD',
           type: parsed.transactionType!,
           amountMinor: parsed.amountMinor!,
           transactionDate: parseDateOnly(parsed.transactionDate!),

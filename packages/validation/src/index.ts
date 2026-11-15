@@ -1,4 +1,5 @@
 export { normalizeEmail, emailSchema } from './email';
+export * from './finance-automation';
 export { apiEnvSchema, type ApiEnv } from './env';
 export {
   passwordSchema,
@@ -38,6 +39,12 @@ export {
 } from './household';
 export {
   financeDateSchema,
+  financeScopeSchema,
+  financeScopeQuerySchema,
+  createFinanceGoalSchema,
+  updateFinanceGoalSchema,
+  type CreateFinanceGoalInput,
+  type UpdateFinanceGoalInput,
   amountMinorSchema,
   positiveAmountMinorSchema,
   financialAccountTypeSchema,

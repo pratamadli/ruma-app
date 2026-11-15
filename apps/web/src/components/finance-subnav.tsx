@@ -6,8 +6,12 @@ import { usePathname } from 'next/navigation';
 const links = [
   { suffix: '', label: 'Overview' },
   { suffix: '/budgets', label: 'Budgets' },
+  { suffix: '/goals', label: 'Goals' },
+  { suffix: '/investments', label: 'Investments' },
+  { suffix: '/schedules', label: 'Reminders' },
   { suffix: '/transactions', label: 'Transactions' },
   { suffix: '/imports', label: 'Imports' },
+  { suffix: '/capture', label: 'Capture' },
   { suffix: '/accounts', label: 'Accounts' },
   { suffix: '/categories', label: 'Categories' },
 ] as const;

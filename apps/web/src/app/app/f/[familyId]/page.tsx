@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, CardDescription, CardTitle } from '@ruma/ui';
 import { AppShell } from '@/components/app-shell';
+import { TelegramConnect } from '@/components/telegram-connect';
 import { useAuth } from '@/lib/auth-context';
 import { getFamily, getHouseholdDashboard, listActivity } from '@/lib/api';
 import { formatActivity } from '@/lib/activity-copy';
@@ -71,6 +72,8 @@ export default function FamilyDashboardPage() {
               {family?.name}
             </p>
           </header>
+
+          <TelegramConnect key={familyId} familyId={familyId} />
 
           <section className="grid gap-3 sm:grid-cols-3">
             <Link href={`/app/f/${familyId}/tasks`} className="no-underline">

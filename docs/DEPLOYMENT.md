@@ -1,183 +1,192 @@
-# RUMA — Production deployment
+# RUMA - Deployment
 
-Deploy order: **Postgres → API → Web**.
+Deploy order: **Neon Postgres -> Render API -> Vercel Web**.
 
-No Docker in this repo. Local Postgres is a native install (e.g. Homebrew). Production uses managed Postgres on Railway.
+The current trial uses Render Free and Neon Free, with Hermes running on the
+operator's PC. No Docker is required. Railway configuration remains in the repo
+for reference; an expired Railway trial is not the active deployment target.
+Do not delete or migrate an old database without separately approving that work.
 
-**Node / pnpm:** production uses **Node 22** + **pnpm 10.33.4** via `npx` (see `.nvmrc`, `nixpacks.toml`, `packageManager`). Do not rely on Corepack on Railway — pnpm 11 crashes (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`), and global `pnpm` is often missing from PATH across Nixpacks layers.
+| Piece                     | Host                                    | Configuration                                               |
+| ------------------------- | --------------------------------------- | ----------------------------------------------------------- |
+| PostgreSQL                | [Neon](https://console.neon.tech/)      | Secret `DATABASE_URL` in Render                             |
+| Nest API                  | [Render](https://dashboard.render.com/) | [`render.yaml`](../render.yaml), repository root            |
+| Next.js web               | [Vercel](https://vercel.com/)           | [`apps/web/vercel.json`](../apps/web/vercel.json)           |
+| Hermes / Telegram Gateway | Local PC                                | [Finance automation setup](./modules/finance/AUTOMATION.md) |
 
-| Piece      | Host                                          | Config in repo                                                  |
-| ---------- | --------------------------------------------- | --------------------------------------------------------------- |
-| PostgreSQL | [Railway](https://railway.app) Postgres       | —                                                               |
-| `apps/api` | [Railway](https://railway.app) (same project) | `railway.toml`, `nixpacks.toml`                                 |
-| `apps/web` | [Vercel](https://vercel.com)                  | `apps/web/vercel.json`, `apps/web/next.config.ts` (API rewrite) |
+## Free-tier constraints
 
-Current production (reference):
+- Render Free sleeps after 15 minutes without inbound traffic. Waking can take
+  about a minute; a Telegram connection command may time out during that period.
+  Wait for `/v1/health` to respond, check `/ruma status`, then retry if not linked.
+  Do not use artificial keep-alive traffic to bypass the free-tier limits.
+- Keep `FINANCE_JOBS_ENABLED=false`. In-process scheduled reminders/reports are
+  not reliable on a service that sleeps.
+- Leave `FINANCE_RECEIPT_DIR` **unset**. Uploads then return the explicit
+  `RECEIPT_STORAGE_UNAVAILABLE` error instead of accepting files that disappear.
+  Do not point it at `/tmp` or another ephemeral directory. Enable receipts only
+  after provisioning durable private storage and validating its implementation.
+- Do not create Render Free Postgres: it expires after 30 days. Neon Free is
+  quota-limited but is not a time-limited trial. Monitor its compute/storage
+  quotas and export backups; a free plan is not a production availability SLA.
+- Manual finance, draft review and household Telegram linking remain available.
+  The connection-only Hermes plugin does not add natural-language finance tools.
 
-| Surface | URL                                          |
-| ------- | -------------------------------------------- |
-| Web     | `https://ruma-app-web.vercel.app`            |
-| API     | `https://ruma-app-production.up.railway.app` |
+See [Render Free limits](https://render.com/docs/free) and
+[Neon pricing](https://neon.com/pricing) for current limits.
 
----
+## 1. Publish the selected revision
 
-## Checklist
+Commit and push the approved implementation to `feat/finance-platform`.
+The trial Blueprint explicitly selects that branch and disables auto-deploy.
+Do not merge to `main` merely to deploy a trial.
 
-### A. Push code
+After reviewing and merging the feature, change the Blueprint's `branch` and
+Vercel's production branch together. Database migrations affect a shared database
+regardless of which Git branch initiated them; never point unreviewed previews
+at a production database.
 
-Commit and push to `main` before connecting hosts to GitHub (or after config changes).
+## 2. Create the Neon database
 
-### B. Database + API (Railway)
+1. Create a **new project** on the Free plan, named `ruma`.
+2. Prefer AWS Singapore (`ap-southeast-1`) alongside Render Singapore.
+3. Use PostgreSQL 16, the project's recommended production major version.
+4. Use the project's normal Postgres database/role; do not enable Neon Auth or
+   replace the Nest session model.
+5. Open **Connect**, select the new database and disable connection pooling.
+   Copy the direct Postgres connection string straight into Render's secret
+   field. Never put it in Git, screenshots, build commands or chat.
+6. Preserve TLS parameters from Neon (`sslmode=require`, and channel binding if
+   provided). Add `connection_limit=5&connect_timeout=30` to its query string.
 
-1. Create a project at [railway.app](https://railway.app) → **Deploy from GitHub** → `pratamadli/ruma-app`.
-2. Root directory: **repository root** (so pnpm workspace + `railway.toml` apply). Do **not** set root to `apps/api`.
-3. Same project: **New** → **Database** → **PostgreSQL**.
-4. On the **API service**, Variables:
+For this single-instance trial, the same direct `DATABASE_URL` is used by Prisma
+at runtime and for migrations. This avoids running Prisma migration locks
+through a transaction pooler. A future pooled setup should introduce a separate
+direct migration URL and validate it before scaling.
 
-| Variable                     | Value / notes                                                                           |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| `NODE_ENV`                   | `production`                                                                            |
-| `DATABASE_URL`               | Variable **reference** to Postgres → `DATABASE_URL` (internal host is fine for the API) |
-| `JWT_ACCESS_SECRET`          | `openssl rand -base64 48`                                                               |
-| `JWT_REFRESH_SECRET`         | another `openssl rand -base64 48`                                                       |
-| `CORS_ORIGINS`               | Vercel web origin, e.g. `https://ruma-app-web.vercel.app`                               |
-| `APP_URL`                    | Same as web origin (invite links)                                                       |
-| `EMAIL_FROM`                 | `RUMA <onboarding@resend.dev>`                                                          |
-| `RESEND_API_KEY`             | optional (invites + password reset emails)                                              |
-| `PASSWORD_RESET_TTL_SECONDS` | optional (default `3600`)                                                               |
-| `SENTRY_DSN`                 | optional API error tracking                                                             |
-| `SENTRY_ENVIRONMENT`         | optional (defaults to `NODE_ENV`)                                                       |
-| `NIXPACKS_NODE_VERSION`      | `22` (optional belt-and-suspenders)                                                     |
+## 3. Deploy the Render API
 
-5. **Settings → Networking → Generate Domain**. Target port = Railway `PORT` (often **8080**).
-6. Smoke:
-   - `https://<api>.up.railway.app/v1/health`
-   - `https://<api>.up.railway.app/v1/health/ready` → `database: "up"`
+### Blueprint (recommended)
 
-Migrations run via Railway `preDeployCommand` (`prisma migrate deploy`) before each deploy (`railway.toml`).
+1. Connect GitHub with access to **only the required repository**.
+2. Create a Blueprint from `pratamadli/ruma-app`, branch
+   `feat/finance-platform`, using the root `render.yaml`.
+3. Verify the proposed service is **Free**, in Singapore, with no Render
+   database, disk or paid worker.
+4. Supply the new Neon connection string for `DATABASE_URL`.
+5. Apply the Blueprint. Render generates the JWT secrets and the dedicated
+   Hermes service token; keep them in provider secret management.
 
-### C. Web (Vercel)
+### Equivalent manual Web Service settings
 
-1. [vercel.com/new](https://vercel.com/new) → import `pratamadli/ruma-app`.
-2. **Root Directory:** `apps/web`.
-3. Env (required for auth cookies):
+| Setting        | Value                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime        | Node                                                                                                                            |
+| Root directory | Empty (repository root), **not** `apps/api`                                                                                     |
+| Branch         | `feat/finance-platform`                                                                                                         |
+| Instance       | Free                                                                                                                            |
+| Region         | Singapore                                                                                                                       |
+| Build command  | `npx --yes pnpm@10.33.4 install --frozen-lockfile --prod=false && npx --yes pnpm@10.33.4 turbo run build --filter=@ruma/api...` |
+| Start command  | `npx --yes pnpm@10.33.4 --filter @ruma/api start:prod`                                                                          |
+| Health check   | `/v1/health`                                                                                                                    |
+| Auto-deploy    | Off for the initial trial                                                                                                       |
 
-| Variable                         | Value                                                |
-| -------------------------------- | ---------------------------------------------------- |
-| `NEXT_PUBLIC_API_URL`            | `/v1`                                                |
-| `API_PROXY_TARGET`               | `https://<api>.up.railway.app` (**no** `/v1` suffix) |
-| `NEXT_PUBLIC_SENTRY_DSN`         | optional public DSN                                  |
-| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | optional (e.g. `production`)                         |
-| `NEXT_PUBLIC_APP_VERSION`        | optional; defaults from `apps/web/package.json`      |
+Use Node 22 and pnpm 10.33.4. Keep build dependencies installed even with
+`NODE_ENV=production`; Nest and Prisma need them during compilation.
 
-`API_PROXY_TARGET` enables a Next.js rewrite (`/v1/*` → Railway) in `apps/web/next.config.ts`. The browser must call **same-origin** `/v1` on Vercel. Calling Railway from the browser directly breaks refresh cookies (third-party cookie) so Family/nav reloads look like “logged out”.
+The existing `start:prod` script runs `prisma migrate deploy && node dist/main.js`.
+Migrations therefore finish successfully **before** the API binds its port.
+Do not move migrations into the build command or use `prisma db push`.
+Render Free has no pre-deploy command; paid services can later separate this
+step. The API listens on `0.0.0.0` and Render's supplied `PORT`.
 
-4. Deploy → note production URL.
+### Environment
 
-### D. Wire origins
+| Variable                            | Value                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `NODE_VERSION`                      | `22`                                                                                      |
+| `NODE_ENV`                          | `production`                                                                              |
+| `DATABASE_URL`                      | New Neon direct TLS connection string                                                     |
+| `JWT_ACCESS_SECRET`                 | Independently generated secret, at least 32 characters                                    |
+| `JWT_REFRESH_SECRET`                | Another independently generated secret, at least 32 characters                            |
+| `HERMES_SERVICE_TOKEN`              | Dedicated secret; match it in the local Hermes profile only when activating the connector |
+| `CORS_ORIGINS`                      | `https://ruma-app-web.vercel.app`                                                         |
+| `APP_URL`                           | `https://ruma-app-web.vercel.app`                                                         |
+| `FINANCE_JOBS_ENABLED`              | `false`                                                                                   |
+| `FINANCE_RECEIPT_DIR`               | **Unset**                                                                                 |
+| `EMAIL_FROM`                        | Optional; defaults to `RUMA <onboarding@resend.dev>`                                      |
+| `RESEND_API_KEY`                    | Optional; required for actual invitation/password reset email delivery                    |
+| `TELEGRAM_BOT_USERNAME`             | Optional bot username, without `@`                                                        |
+| `SENTRY_DSN` / `SENTRY_ENVIRONMENT` | Optional observability                                                                    |
 
-On Railway API, ensure and redeploy if needed:
+Do not configure a RUMA Telegram webhook for a bot already owned by Hermes
+Gateway, and do not run a second poller for that bot.
 
-| Variable       | Value                                                         |
-| -------------- | ------------------------------------------------------------- |
-| `CORS_ORIGINS` | `https://ruma-app-web.vercel.app` (plus custom domains later) |
-| `APP_URL`      | same                                                          |
+### API smoke checks
 
-### E. Smoke
+- `https://<render-service>.onrender.com/v1/health` responds successfully.
+- `/v1/health/ready` reports `database: "up"`.
+- Deploy logs show all 15 migrations applied/up to date, then API startup.
+- Use `/v1/health`, not the database readiness endpoint, for frequent platform
+  health checks so checks do not unnecessarily keep Neon compute awake.
 
-- [ ] Landing loads on Vercel
-- [ ] Sign up / sign in
-- [ ] Open **Family** tab without being sent to sign-in
-- [ ] Hard refresh → still signed in
-- [ ] Create family / members / settings
-- [ ] Invite (URL in API logs if Resend unset)
+## 4. Connect Vercel
 
----
+Keep the frontend's root directory at `apps/web`.
 
-## Auto-deploy on push to `main`
+| Variable                         | Value                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`            | `/v1`                                                                      |
+| `API_PROXY_TARGET`               | Verified `https://<render-service>.onrender.com` origin, **without** `/v1` |
+| `NEXT_PUBLIC_SENTRY_DSN`         | Optional public DSN                                                        |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Optional                                                                   |
+| `NEXT_PUBLIC_APP_VERSION`        | Optional; defaults to the web package version                              |
 
-Two options. Pick **one** to avoid double deploys.
+Update the environment for the intended deployment and **redeploy**: the rewrite
+is evaluated when Next.js builds. A feature-branch push does not automatically
+replace a `main` production deployment. Deploy the approved feature revision
+explicitly for the trial; do not merge it just to activate Vercel.
 
-### Option A — Native GitHub sync (simplest)
+The browser must call same-origin `/v1` on Vercel. Calling Render directly from
+the browser can break refresh cookies. The existing rewrite forwards API
+requests to `API_PROXY_TARGET`.
 
-**Railway (`ruma-app` service)**
+For an additional Vercel preview origin, explicitly add that exact origin to
+API `CORS_ORIGINS`. Do not allow arbitrary `*.vercel.app` origins. Keep `APP_URL`
+pointed at the intended user-facing site for invitation links.
 
-1. **Settings** → **Source**
-2. Repo `pratamadli/ruma-app`, branch **`main`**
-3. Auto deploy / deploy on push: **ON**
-4. Recommended: **Wait for CI** = ON (waits for GitHub Action `CI`)
+## 5. End-to-end checks
 
-**Vercel (`ruma-app-web`)**
+- [ ] API health and database readiness succeed.
+- [ ] Vercel `/v1/health` reaches the new API.
+- [ ] Sign up/sign in, navigate to Family, and hard-refresh without losing the session.
+- [ ] Create a test household and a manual finance transaction.
+- [ ] Receipt uploads fail explicitly while storage is unconfigured.
+- [ ] Jobs remain disabled; no new Telegram webhook/poller is configured.
+- [ ] Activate the local connector separately following [automation setup](./modules/finance/AUTOMATION.md).
 
-1. **Settings** → **Git**
-2. Connected to `pratamadli/ruma-app`
-3. **Production Branch** = `main`
-4. Automatic deployments from Git: **ON**
+## Auto-deploy after the trial
 
-### Option B — CD workflow after CI (deploy hooks)
+Choose **one** mechanism, not both:
 
-Repo workflow: `.github/workflows/cd.yml`  
-Flow: push `main` → `CI` green → curl deploy hooks → Railway + Vercel.
+1. Native GitHub deployment on Render and Vercel. Render can wait for CI checks,
+   but CI must actually run for the selected branch; otherwise no deploy starts.
+2. The optional [CD workflow](../.github/workflows/cd.yml), triggered after
+   successful `main` CI, using GitHub secrets `RENDER_DEPLOY_HOOK_URL` and
+   `VERCEL_DEPLOY_HOOK_URL`. Disable native auto-deploy when using hooks.
 
-1. Railway → deploy hook URL (turn **off** Git auto-deploy if using hooks only).
-2. Vercel → Deploy Hook for `main` (optional: disable automatic Git deploys).
-3. GitHub → **Settings** → **Secrets and variables** → **Actions**:
+Missing hook secrets are skipped. Never commit hook URLs. The old
+`RAILWAY_DEPLOY_HOOK_URL` is no longer used by this branch's workflow.
 
-| Secret                    | Value                   |
-| ------------------------- | ----------------------- |
-| `RAILWAY_DEPLOY_HOOK_URL` | Railway deploy hook URL |
-| `VERCEL_DEPLOY_HOOK_URL`  | Vercel deploy hook URL  |
+## Session and data safety
 
-Missing secrets are skipped (workflow still succeeds).
-
----
-
-## Auth session model (production)
-
-| Piece                   | Behavior                                                                                                         |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Access token            | JWT in browser memory; `Authorization: Bearer`                                                                   |
-| Refresh token           | httpOnly cookie `ruma_refresh`, path `/v1/auth`                                                                  |
-| Local                   | `SameSite=Lax`, API at `localhost`                                                                               |
-| Production cookie flags | `Secure` + `SameSite=None` (set by API when `NODE_ENV=production`)                                               |
-| Production browser path | Web uses `NEXT_PUBLIC_API_URL=/v1` so cookie is **first-party on Vercel** via rewrite                            |
-| App shell nav           | Next.js `Link` (client navigation); avoid full document reloads that drop in-memory access tokens before refresh |
-
-Do **not** set `NEXT_PUBLIC_API_URL` to the raw Railway URL on Vercel.
-
----
-
-## Inspecting production data
-
-Railway’s in-dashboard DB browser sometimes fails (SSH/WebSocket tunnel). That does **not** mean Postgres is down if `/v1/health/ready` is green.
-
-Options:
-
-1. Postgres → **Console** → SQL (`\dt`, `SELECT …`).
-2. Local Prisma Studio with the **public** Railway `DATABASE_URL` (host `*.railway.app` / proxy — not `*.railway.internal`):
-
-```bash
-cd apps/api
-DATABASE_URL="postgresql://..." pnpm exec prisma studio
-```
-
-3. TablePlus / DBeaver with the public TCP credentials from Railway **Connect**.
-
----
-
-## Local secret generation
-
-```bash
-openssl rand -base64 48
-openssl rand -base64 48
-```
-
----
-
-## What not to do
-
-- Do not add Dockerfiles or docker-compose for app/runtime in this repo.
-- Do not deploy Nest as a Vercel serverless function (not configured).
-- Do not point Vercel `NEXT_PUBLIC_API_URL` at Railway (use `/v1` + `API_PROXY_TARGET`).
-- Do not forget `CORS_ORIGINS` / `APP_URL` after the web URL is known.
-- Do not use Neon/Supabase Auth as the session authority (Nest owns auth; see ADR-003).
+- Nest owns authentication, not Neon Auth.
+- Access JWTs live in browser memory; refresh tokens use an httpOnly
+  `ruma_refresh` cookie scoped to `/v1/auth`.
+- Production sets `Secure` and `SameSite=None`; the Vercel rewrite keeps browser
+  requests first-party.
+- The new Neon database starts empty. Existing accounts and households will not
+  appear unless a separately approved data migration is performed.
+- Keep database credentials, service tokens and local Hermes model credentials
+  out of the browser frontend and Git.
+- Do not delete old Railway/local database files as part of this setup.

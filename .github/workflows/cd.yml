@@ -1,10 +1,10 @@
 # Triggers production redeploys after CI succeeds on main.
 # Requires GitHub secrets (see docs/DEPLOYMENT.md → Auto-deploy):
-#   RAILWAY_DEPLOY_HOOK_URL
+#   RENDER_DEPLOY_HOOK_URL
 #   VERCEL_DEPLOY_HOOK_URL
 #
 # If those secrets are unset, this workflow no-ops. Prefer enabling
-# native GitHub auto-deploy on Railway/Vercel if you do not want hooks.
+# native GitHub auto-deploy on Render/Vercel if you do not want hooks.
 name: CD
 
 on:
@@ -24,17 +24,17 @@ jobs:
       github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Railway
+      - name: Trigger Render
         env:
-          RAILWAY_DEPLOY_HOOK_URL: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          if [ -z "${RAILWAY_DEPLOY_HOOK_URL}" ]; then
-            echo "RAILWAY_DEPLOY_HOOK_URL secret missing — skipped."
-            echo "Add the secret, or rely on Railway GitHub auto-deploy."
+          if [ -z "${RENDER_DEPLOY_HOOK_URL}" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL secret missing — skipped."
+            echo "Add the secret, or rely on Render GitHub auto-deploy."
             exit 0
           fi
-          curl -fsS -X POST "${RAILWAY_DEPLOY_HOOK_URL}"
-          echo "Railway deploy hook OK"
+          curl -fsS -o /dev/null -X POST "${RENDER_DEPLOY_HOOK_URL}"
+          echo "Render deploy hook OK"
 
       - name: Trigger Vercel
         env:

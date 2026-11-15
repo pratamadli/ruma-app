@@ -7,16 +7,26 @@ import { Button, Card, CardDescription, CardTitle, Input, Label, Select } from '
 import type { FinancialAccountType } from '@ruma/types';
 import { AppShell } from '@/components/app-shell';
 import { FinanceSubnav } from '@/components/finance-subnav';
+import { FinanceScopePicker, useFinanceScope } from '@/components/finance-scope';
 import { useAuth } from '@/lib/auth-context';
 import { createFinanceAccount, listFinanceAccounts, updateFinanceAccount } from '@/lib/api';
 import { formatAccountType, formatIdr, parseIdrInput } from '@/lib/money';
 
-const ACCOUNT_TYPES: FinancialAccountType[] = ['BANK', 'CASH', 'E_WALLET', 'CREDIT_CARD', 'OTHER'];
+const ACCOUNT_TYPES: FinancialAccountType[] = [
+  'BANK',
+  'CASH',
+  'E_WALLET',
+  'CREDIT_CARD',
+  'SAVINGS',
+  'INVESTMENT',
+  'OTHER',
+];
 
 export default function FinanceAccountsPage() {
   const params = useParams<{ familyId: string }>();
   const familyId = params.familyId;
   const { accessToken } = useAuth();
+  const { scope } = useFinanceScope();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [type, setType] = useState<FinancialAccountType>('BANK');
@@ -25,9 +35,9 @@ export default function FinanceAccountsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const accountsQuery = useQuery({
-    queryKey: ['finance-accounts', familyId, accessToken],
+    queryKey: ['finance-accounts', familyId, accessToken, scope],
     enabled: Boolean(accessToken && familyId),
-    queryFn: () => listFinanceAccounts(accessToken!, familyId),
+    queryFn: () => listFinanceAccounts(accessToken!, familyId, scope),
   });
 
   async function refresh() {
@@ -47,6 +57,7 @@ export default function FinanceAccountsPage() {
     setError(null);
     try {
       await createFinanceAccount(accessToken, familyId, {
+        scope,
         name: name.trim(),
         type,
         initialBalanceMinor,
@@ -64,8 +75,24 @@ export default function FinanceAccountsPage() {
 
   async function toggleActive(accountId: string, isActive: boolean) {
     if (!accessToken) return;
-    await updateFinanceAccount(accessToken, familyId, accountId, { isActive: !isActive });
-    await refresh();
+    if (isActive && !window.confirm('Deactivate this account? History will be preserved.')) return;
+    try {
+      await updateFinanceAccount(accessToken, familyId, accountId, { isActive: !isActive });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update account');
+    }
+  }
+
+  async function renameAccount(accountId: string, name: string) {
+    const next = window.prompt('Account name', name);
+    if (!accessToken || !next?.trim()) return;
+    try {
+      await updateFinanceAccount(accessToken, familyId, accountId, { name: next.trim() });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to rename account');
+    }
   }
 
   const accounts = accountsQuery.data?.accounts ?? [];
@@ -81,6 +108,7 @@ export default function FinanceAccountsPage() {
             </p>
           </div>
           <FinanceSubnav familyId={familyId} />
+          <FinanceScopePicker />
         </header>
 
         <Card>
@@ -132,6 +160,10 @@ export default function FinanceAccountsPage() {
 
         {accountsQuery.isLoading ? (
           <p className="text-[var(--ruma-color-ink-muted)]">Loading accounts…</p>
+        ) : accountsQuery.isError ? (
+          <p role="alert" className="text-[var(--ruma-color-danger)]">
+            {accountsQuery.error.message}
+          </p>
         ) : accounts.length === 0 ? (
           <Card>
             <CardTitle>No accounts yet</CardTitle>
@@ -160,6 +192,13 @@ export default function FinanceAccountsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="m-0 font-medium tabular-nums">{formatIdr(account.balanceMinor)}</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void renameAccount(account.id, account.name)}
+                  >
+                    Rename
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"

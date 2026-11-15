@@ -1,4 +1,17 @@
 import type {
+  TelegramLinkStatusResponse,
+  TelegramLinkCodeResponse,
+  FinanceScheduleRequest,
+  FinanceScheduleResponse,
+  InvestmentPositionResponse,
+  FinanceReceiptResponse,
+  FinanceDraftResponse,
+  FinanceDraftPayload,
+  FinanceGoalResponse,
+  FinanceScope,
+  FinancialAccountType,
+  TransactionType,
+  CategoryKind,
   AuthTokensResponse,
   BudgetMonthResponse,
   BudgetProgressResponse,
@@ -58,7 +71,7 @@ async function apiFetch<T>(
   options: ApiClientOptions = {},
 ): Promise<T> {
   const headers = new Headers(init.headers);
-  headers.set('Content-Type', 'application/json');
+  if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   if (options.accessToken) {
     headers.set('Authorization', `Bearer ${options.accessToken}`);
   }
@@ -85,6 +98,89 @@ async function apiFetch<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+export function listInvestments(accessToken: string, familyId: string, scope: FinanceScope) {
+  return apiFetch<{ positions: InvestmentPositionResponse[]; totalValuationMinor: string }>(
+    `/families/${familyId}/finance/investments?scope=${scope}`,
+    {},
+    { accessToken },
+  );
+}
+export function createInvestmentPosition(
+  accessToken: string,
+  familyId: string,
+  input: {
+    scope: FinanceScope;
+    accountId: string;
+    instrumentName: string;
+    assetType: string;
+    unitsDecimal: string;
+  },
+) {
+  return apiFetch<{ id: string }>(
+    `/families/${familyId}/finance/investments`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+export function updateInvestmentPosition(
+  accessToken: string,
+  familyId: string,
+  id: string,
+  input: {
+    instrumentName?: string;
+    unitsDecimal?: string;
+    isActive?: boolean;
+  },
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/investments/${id}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+export function valueInvestment(
+  accessToken: string,
+  familyId: string,
+  id: string,
+  input: { valuationDate: string; valueMinor: string },
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/investments/${id}/valuations`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+export function listFinanceSchedules(accessToken: string, familyId: string, scope: FinanceScope) {
+  return apiFetch<{ schedules: FinanceScheduleResponse[] }>(
+    `/families/${familyId}/finance/schedules?scope=${scope}`,
+    {},
+    { accessToken },
+  );
+}
+export function createFinanceSchedule(
+  accessToken: string,
+  familyId: string,
+  input: FinanceScheduleRequest,
+) {
+  return apiFetch<{ id: string }>(
+    `/families/${familyId}/finance/schedules`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+export function updateFinanceSchedule(
+  accessToken: string,
+  familyId: string,
+  id: string,
+  input: Partial<Omit<FinanceScheduleRequest, 'scope' | 'kind'>> & { enabled?: boolean },
+) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/schedules/${id}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
 }
 
 export function fetchHealth() {
@@ -409,8 +505,14 @@ export function markAllNotificationsRead(accessToken: string) {
   return apiFetch<{ ok: boolean }>('/notifications/read-all', { method: 'POST' }, { accessToken });
 }
 
-export function getFinanceSummary(accessToken: string, familyId: string, month?: string) {
+export function getFinanceSummary(
+  accessToken: string,
+  familyId: string,
+  month?: string,
+  scope: FinanceScope = 'HOUSEHOLD',
+) {
   const params = new URLSearchParams();
+  params.set('scope', scope);
   if (month) params.set('month', month);
   const qs = params.toString();
   return apiFetch<FinanceSummaryResponse>(
@@ -420,9 +522,13 @@ export function getFinanceSummary(accessToken: string, familyId: string, month?:
   );
 }
 
-export function listFinanceAccounts(accessToken: string, familyId: string) {
+export function listFinanceAccounts(
+  accessToken: string,
+  familyId: string,
+  scope: FinanceScope = 'HOUSEHOLD',
+) {
   return apiFetch<FinancialAccountListResponse>(
-    `/families/${familyId}/finance/accounts`,
+    `/families/${familyId}/finance/accounts?scope=${scope}`,
     {},
     { accessToken },
   );
@@ -432,8 +538,9 @@ export function createFinanceAccount(
   accessToken: string,
   familyId: string,
   input: {
+    scope?: FinanceScope;
     name: string;
-    type?: 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+    type?: FinancialAccountType;
     initialBalanceMinor?: string;
     ownerUserId?: string | null;
   },
@@ -451,7 +558,7 @@ export function updateFinanceAccount(
   accountId: string,
   input: {
     name?: string;
-    type?: 'BANK' | 'CASH' | 'E_WALLET' | 'CREDIT_CARD' | 'OTHER';
+    type?: FinancialAccountType;
     ownerUserId?: string | null;
     isActive?: boolean;
   },
@@ -474,7 +581,7 @@ export function listFinanceCategories(accessToken: string, familyId: string) {
 export function createFinanceCategory(
   accessToken: string,
   familyId: string,
-  input: { name: string; kind: 'INCOME' | 'EXPENSE' },
+  input: { name: string; kind: CategoryKind },
 ) {
   return apiFetch<TransactionCategoryResponse>(
     `/families/${familyId}/finance/categories`,
@@ -500,9 +607,13 @@ export function listFinanceTransactions(
   accessToken: string,
   familyId: string,
   query: {
+    scope?: FinanceScope;
+    offset?: number;
+    limit?: number;
+    payerUserId?: string;
     from?: string;
     to?: string;
-    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    type?: TransactionType;
     categoryId?: string;
     accountId?: string;
     q?: string;
@@ -510,7 +621,7 @@ export function listFinanceTransactions(
 ) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
-    if (value) params.set(key, value);
+    if (value !== undefined) params.set(key, String(value));
   }
   const qs = params.toString();
   return apiFetch<TransactionListResponse>(
@@ -524,7 +635,15 @@ export function createFinanceTransaction(
   accessToken: string,
   familyId: string,
   input: {
-    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    instrumentName?: string;
+    unitsDecimal?: string;
+    unitPriceMinor?: string;
+    feesMinor?: string;
+    scope?: FinanceScope;
+    payerUserId?: string;
+    adjustmentDirection?: 'INCREASE' | 'DECREASE';
+    idempotencyKey?: string;
+    type: TransactionType;
     amountMinor: string;
     accountId: string;
     transferAccountId?: string;
@@ -545,7 +664,13 @@ export function updateFinanceTransaction(
   familyId: string,
   transactionId: string,
   input: {
-    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    instrumentName?: string;
+    unitsDecimal?: string;
+    unitPriceMinor?: string;
+    feesMinor?: string;
+    payerUserId?: string;
+    adjustmentDirection?: 'INCREASE' | 'DECREASE';
+    type?: TransactionType;
     amountMinor?: string;
     accountId?: string;
     transferAccountId?: string | null;
@@ -573,8 +698,14 @@ export function deleteFinanceTransaction(
   );
 }
 
-export function getFinanceBudget(accessToken: string, familyId: string, month?: string) {
+export function getFinanceBudget(
+  accessToken: string,
+  familyId: string,
+  month?: string,
+  scope: FinanceScope = 'HOUSEHOLD',
+) {
   const params = new URLSearchParams();
+  params.set('scope', scope);
   if (month) params.set('month', month);
   const qs = params.toString();
   return apiFetch<BudgetMonthResponse>(
@@ -588,6 +719,10 @@ export function createFinanceBudget(
   accessToken: string,
   familyId: string,
   input: {
+    scope?: FinanceScope;
+    plannedIncomeMinor?: string;
+    savingsAllocationMinor?: string;
+    investmentAllocationMinor?: string;
     periodMonth: string;
     totalAmountMinor?: string | null;
     items?: Array<{ categoryId: string; amountMinor: string }>;
@@ -605,6 +740,9 @@ export function updateFinanceBudget(
   familyId: string,
   budgetId: string,
   input: {
+    plannedIncomeMinor?: string;
+    savingsAllocationMinor?: string;
+    investmentAllocationMinor?: string;
     totalAmountMinor?: string | null;
     items?: Array<{ categoryId: string; amountMinor: string }>;
     status?: 'ACTIVE' | 'ARCHIVED';
@@ -625,14 +763,167 @@ export function archiveFinanceBudget(accessToken: string, familyId: string, budg
   );
 }
 
+export function listFinanceGoals(accessToken: string, familyId: string, scope: FinanceScope) {
+  return apiFetch<{ goals: FinanceGoalResponse[] }>(
+    `/families/${familyId}/finance/goals?scope=${scope}`,
+    {},
+    { accessToken },
+  );
+}
+
+export function listFinanceDrafts(accessToken: string, familyId: string) {
+  return apiFetch<{ drafts: FinanceDraftResponse[] }>(
+    `/families/${familyId}/finance/drafts`,
+    {},
+    { accessToken },
+  );
+}
+export function listFinanceReceipts(accessToken: string, familyId: string) {
+  return apiFetch<{ receipts: FinanceReceiptResponse[] }>(
+    `/families/${familyId}/finance/receipts`,
+    {},
+    { accessToken },
+  );
+}
+export function getFinanceTransaction(accessToken: string, familyId: string, id: string) {
+  return apiFetch<TransactionResponse & { receiptIds: string[] }>(
+    `/families/${familyId}/finance/transactions/${id}`,
+    {},
+    { accessToken },
+  );
+}
+export function uploadFinanceReceipt(
+  accessToken: string,
+  familyId: string,
+  scope: FinanceScope,
+  file: File,
+) {
+  const body = new FormData();
+  body.set('scope', scope);
+  body.set('file', file);
+  return apiFetch<FinanceReceiptResponse>(
+    `/families/${familyId}/finance/receipts`,
+    { method: 'POST', body },
+    { accessToken },
+  );
+}
+export function createReceiptDraft(
+  accessToken: string,
+  familyId: string,
+  id: string,
+  transaction: FinanceDraftPayload,
+) {
+  return apiFetch<{ draft: FinanceDraftResponse; possibleDuplicateTransactionId: string | null }>(
+    `/families/${familyId}/finance/receipts/${id}/draft`,
+    { method: 'POST', body: JSON.stringify({ transaction, idempotencyKey: `receipt:${id}` }) },
+    { accessToken },
+  );
+}
+export async function downloadFinanceReceipt(accessToken: string, familyId: string, id: string) {
+  const response = await fetch(`${API_URL}/families/${familyId}/finance/receipts/${id}/file`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    credentials: 'include',
+  });
+  if (!response.ok) throw new ApiError('Unable to download receipt.', undefined, response.status);
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'receipt.jpg';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+export function confirmFinanceDraft(accessToken: string, familyId: string, id: string) {
+  return apiFetch<{ transactionId: string; status: string }>(
+    `/families/${familyId}/finance/drafts/${id}/confirm`,
+    { method: 'POST' },
+    { accessToken },
+  );
+}
+export function cancelFinanceDraft(accessToken: string, familyId: string, id: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/drafts/${id}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+export function replaceFinanceDraft(
+  accessToken: string,
+  familyId: string,
+  id: string,
+  transaction: FinanceDraftPayload,
+) {
+  return apiFetch<FinanceDraftResponse>(
+    `/families/${familyId}/finance/drafts/${id}`,
+    { method: 'PATCH', body: JSON.stringify({ transaction, idempotencyKey: crypto.randomUUID() }) },
+    { accessToken },
+  );
+}
+export function getTelegramLink(accessToken: string, familyId: string) {
+  return apiFetch<TelegramLinkStatusResponse>(
+    `/families/${familyId}/finance/telegram`,
+    {},
+    { accessToken },
+  );
+}
+export function createTelegramLink(accessToken: string, familyId: string) {
+  return apiFetch<TelegramLinkCodeResponse>(
+    `/families/${familyId}/finance/telegram/link`,
+    { method: 'POST' },
+    { accessToken },
+  );
+}
+export function unlinkTelegram(accessToken: string, familyId: string) {
+  return apiFetch<{ ok: boolean }>(
+    `/families/${familyId}/finance/telegram/link`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+}
+export function createFinanceGoal(
+  accessToken: string,
+  familyId: string,
+  input: {
+    scope: FinanceScope;
+    name: string;
+    targetAmountMinor: string;
+    currentAmountMinor?: string;
+    targetDate?: string | null;
+  },
+) {
+  return apiFetch<FinanceGoalResponse>(
+    `/families/${familyId}/finance/goals`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+export function updateFinanceGoal(
+  accessToken: string,
+  familyId: string,
+  id: string,
+  input: {
+    name?: string;
+    targetAmountMinor?: string;
+    currentAmountMinor?: string;
+    targetDate?: string | null;
+    status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  },
+) {
+  return apiFetch<FinanceGoalResponse>(
+    `/families/${familyId}/finance/goals/${id}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+}
+
 export function getFinanceAnalysis(
   accessToken: string,
   familyId: string,
-  query: { month?: string; months?: number } = {},
+  query: { month?: string; months?: number; scope?: FinanceScope } = {},
 ) {
   const params = new URLSearchParams();
   if (query.month) params.set('month', query.month);
   if (query.months != null) params.set('months', String(query.months));
+  if (query.scope) params.set('scope', query.scope);
   const qs = params.toString();
   return apiFetch<FinanceAnalysisResponse>(
     `/families/${familyId}/finance/analysis${qs ? `?${qs}` : ''}`,
@@ -722,7 +1013,7 @@ export function updateFinanceImport(
   familyId: string,
   candidateId: string,
   input: {
-    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    transactionType?: TransactionType;
     amountMinor?: string;
     currency?: string;
     transactionDate?: string;
@@ -746,7 +1037,7 @@ export function confirmFinanceImport(
   familyId: string,
   candidateId: string,
   input: {
-    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    transactionType?: TransactionType;
     amountMinor?: string;
     currency?: string;
     transactionDate?: string;
